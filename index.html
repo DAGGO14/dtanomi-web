@@ -221,7 +221,7 @@ section{padding:6rem 2rem;}
 /* ROBOTS */
 #agents{background:var(--bg2);}
 .agents-intro{text-align:center;max-width:680px;margin:0 auto 2.75rem;}
-.robots-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(225px,1fr));gap:1.05rem;margin-bottom:3.25rem;}
+.robots-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1.05rem;margin-bottom:3.25rem;}
 .robot-card{background:linear-gradient(145deg,rgba(26,10,46,.95),rgba(13,8,32,.98));border:1px solid var(--gb);border-radius:20px;padding:1.65rem 1.35rem;display:flex;flex-direction:column;align-items:center;text-align:center;transition:transform .3s,box-shadow .3s,border-color .3s;position:relative;overflow:hidden;}
 .robot-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--p700),var(--p400),var(--p700));opacity:0;transition:opacity .3s;}
 .robot-card:hover{transform:translateY(-7px);box-shadow:0 18px 46px rgba(123,47,255,.3);border-color:rgba(155,85,255,.5);}
@@ -390,6 +390,17 @@ section{padding:6rem 2rem;}
 .upload-thumb{width:56px;height:42px;border-radius:6px;object-fit:cover;border:1px solid var(--gb);}
 .upload-vname{font-size:.7rem;color:var(--p300);background:rgba(123,47,255,.1);border:1px solid var(--gb);border-radius:6px;padding:.18rem .45rem;}
 
+
+/* EDIT MODAL */
+#edit-overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:1rem;}
+#edit-overlay.open{display:flex;}
+.edit-box{width:100%;max-width:700px;max-height:90vh;overflow-y:auto;background:var(--bg2);border:1px solid var(--gb);border-radius:17px;padding:2rem;position:relative;}
+.edit-box h3{font-family:"Space Grotesk",sans-serif;font-size:1.05rem;font-weight:600;color:var(--p300);margin-bottom:1.25rem;}
+.edit-close{position:absolute;top:.85rem;right:.85rem;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.5);border:1px solid var(--gb);color:var(--g400);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .2s;}
+.edit-close:hover{background:rgba(239,68,68,.15);color:#f87171;}
+.bedit{background:rgba(123,47,255,.15);border:1px solid rgba(168,85,247,.3);border-radius:6px;color:var(--p300);padding:.22rem .58rem;cursor:pointer;font-size:.68rem;transition:all .2s;margin-left:.4rem;}
+.bedit:hover{background:rgba(123,47,255,.3);}
+
 /* FOOTER */
 footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 1.35rem;}
 .fi-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:2.25rem;padding-bottom:1.65rem;border-bottom:1px solid var(--gb);}
@@ -407,7 +418,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
 .scroll-top.visible{opacity:1;}.scroll-top:hover{transform:translateY(-3px);}
 
 @media(max-width:900px){.about-grid,.contact-grid{grid-template-columns:1fr;}.about-logo-wrap{display:none;}.fi-inner{grid-template-columns:1fr 1fr;}.fgrid{grid-template-columns:1fr;}.fw{grid-column:1;}}
-@media(max-width:600px){nav{padding:.7rem 1rem;}.nav-links{display:none;}.fi-inner{grid-template-columns:1fr;gap:1.3rem;}.stats{grid-template-columns:1fr;}.pf-grid,.team-grid{grid-template-columns:1fr;}.robots-grid{grid-template-columns:1fr 1fr;}.modal-body{padding:1.05rem;}.modal-media{height:185px;}}
+@media(max-width:600px){nav{padding:.7rem 1rem;}.nav-links{display:none;}.fi-inner{grid-template-columns:1fr;gap:1.3rem;}.stats{grid-template-columns:1fr;}.pf-grid,.team-grid{grid-template-columns:1fr;}.robots-grid{grid-template-columns:1fr 1fr 1fr;}.modal-body{padding:1.05rem;}.modal-media{height:185px;}}
 </style>
 </head>
 <body>
@@ -455,7 +466,6 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
       <span class="nav-uname" id="nav-uname">—</span>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
-    <button class="btn-edit" id="btn-edit" onclick="openAdminOverlay()">⚙️ Editar</button>
     <button class="nav-cta" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Hablar con nosotros</button>
   </div>
 </nav>
@@ -553,6 +563,17 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
           <div class="robot-feat">Sin código de tu parte</div>
         </div>
         <button class="robot-btn" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Crear el mío</button>
+      </div>
+      <div class="robot-card" style="background:linear-gradient(145deg,rgba(40,10,60,.95),rgba(20,5,35,.98));border-color:rgba(168,85,247,.35)">
+        <div class="robot-face" style="animation-delay:2.4s"><div class="robot-body" style="background:linear-gradient(145deg,#3d1060,#1e0840);border-color:rgba(200,100,255,.5)"><div class="robot-headset"></div><div class="robot-eyes"><div class="robot-eye big" style="background:radial-gradient(circle,#e879f9,#a855f7);box-shadow:0 0 12px rgba(232,121,249,.9)"></div><div class="robot-eye big" style="background:radial-gradient(circle,#e879f9,#a855f7);box-shadow:0 0 12px rgba(232,121,249,.9)"></div></div></div></div>
+        <div class="robot-title" style="color:#e879f9">Crea el Tuyo</div>
+        <div class="robot-feats">
+          <div class="robot-feat">Diseñado para tu proceso</div>
+          <div class="robot-feat">Integrado con tus sistemas</div>
+          <div class="robot-feat">Sin código de tu parte</div>
+          <div class="robot-feat">Listo en días, no meses</div>
+        </div>
+        <button class="robot-btn" style="background:linear-gradient(135deg,rgba(120,40,180,.8),rgba(168,85,247,.8));border-color:rgba(232,121,249,.4)" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">Personalizar agente</button>
       </div>
     </div>
     <div class="comp-wrap">
@@ -733,6 +754,17 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
   </div>
 </section>
 
+
+<!-- EDIT OVERLAY -->
+<div id="edit-overlay" onclick="if(event.target===this)closeEditOverlay()">
+  <div class="edit-box">
+    <button class="edit-close" onclick="closeEditOverlay()">✕</button>
+    <h3 id="edit-title">Editar</h3>
+    <div id="edit-form-content"></div>
+    <button class="btn-f" id="edit-save-btn" onclick="saveEdit()" style="margin-top:1rem">Guardar cambios</button>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <div class="fi-inner">
@@ -743,7 +775,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
     <div class="fcol"><h4>Empresa</h4><ul><li><a href="#about">Nosotros</a></li><li><a href="#agents">Automatización</a></li><li><a href="#portfolio">Portafolio</a></li><li><a href="#team">Equipo</a></li></ul></div>
     <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:contacto@dtanomi.com">Email</a></li></ul></div>
   </div>
-  <div class="fbot"><span>© 2025 DTANOMI · AI Technology.</span><span>Hecho con 💜 en Colombia</span></div>
+  <div class="fbot"><span>© 2025 DTANOMI · AI Technology.</span><span>Hecho con 💜 en Colombia</span><button id="btn-edit" onclick="openAdminOverlay()" style="background:transparent;border:1px solid var(--gb);border-radius:7px;color:var(--g400);font-size:.72rem;padding:.3rem .75rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='var(--p300)'" onmouseout="this.style.color='var(--g400)'">⚙️ Editar sitio</button></div>
 </footer>
 
 <!-- MODAL -->
@@ -799,7 +831,7 @@ function doLogin(){
   _currentUser=found;
   window._currentUser=found;
   closeAdminOverlay();
-  document.getElementById('btn-edit').style.display='none';
+  const be2=document.getElementById('btn-edit'); if(be2)be2.style.display='none';
   const nuw=document.getElementById('nav-user-wrap');
   nuw.style.display='flex';
   document.getElementById('nav-av').textContent=initials(found.name);
@@ -811,7 +843,7 @@ function doLogin(){
 
 function doLogout(){
   _currentUser=null;window._currentUser=null;
-  document.getElementById('btn-edit').style.display='block';
+  const be=document.getElementById('btn-edit'); if(be)be.style.display='';
   document.getElementById('nav-user-wrap').style.display='none';
   document.getElementById('admin-panel').classList.remove('visible');
   showToast('👋 Sesión cerrada');
@@ -1057,6 +1089,119 @@ function sendContact(){
   showToast('✅ ¡Mensaje enviado! Te contactaremos pronto.');
   ['cn','ce','cc','cm'].forEach(id=>document.getElementById(id).value='');
 }
+
+
+// ===== EDIT OVERLAY =====
+let _editType = null;
+let _editId = null;
+
+function closeEditOverlay(){
+  document.getElementById('edit-overlay').classList.remove('open');
+  _editType=null; _editId=null;
+}
+
+function editProject(id){
+  const p=window._projects.find(x=>x.id===id); if(!p)return;
+  _editType='project'; _editId=id;
+  document.getElementById('edit-title').textContent='✏️ Editar proyecto: '+p.name;
+  document.getElementById('edit-form-content').innerHTML=`
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="ep-name" value="${escHtml(p.name||'')}"></div>
+      <div class="fg"><label class="fl">Categoría</label>
+        <select class="fsel" id="ep-cat">
+          <option value="python" ${p.cat==='python'?'selected':''}>🐍 Python</option>
+          <option value="bot" ${p.cat==='bot'?'selected':''}>🤖 Bot</option>
+          <option value="web" ${p.cat==='web'?'selected':''}>🌐 Web</option>
+          <option value="ai" ${p.cat==='ai'?'selected':''}>🧠 IA</option>
+        </select>
+      </div>
+      <div class="fg fw"><label class="fl">¿Qué hace?</label><input type="text" class="fi" id="ep-desc" value="${escHtml(p.desc||'')}"></div>
+      <div class="fg fw"><label class="fl">Problema que resuelve</label><textarea class="fta" id="ep-problem">${escHtml(p.problem||'')}
+</textarea></div>
+      <div class="fg fw"><label class="fl">Detalles completos</label><textarea class="fta" id="ep-detail" style="min-height:90px">${escHtml(p.detail||'')}
+</textarea></div>
+      <div class="fg"><label class="fl">⏱ Tiempo ahorrado</label><input type="text" class="fi" id="ep-time" value="${escHtml(p.time||'')}"></div>
+      <div class="fg"><label class="fl">💰 Ahorro / Ganancia</label><input type="text" class="fi" id="ep-money" value="${escHtml(p.money||'')}"></div>
+      <div class="fg"><label class="fl">📊 Métrica extra</label><input type="text" class="fi" id="ep-m3" value="${escHtml(p.m3||'')}"></div>
+      <div class="fg"><label class="fl">🏷 Tags (coma)</label><input type="text" class="fi" id="ep-tags" value="${escHtml((p.tags||[]).join(', '))}"></div>
+      <div class="fg"><label class="fl">Emoji</label><input type="text" class="fi" id="ep-emoji" value="${escHtml(p.emoji||'🚀')}" maxlength="4"></div>
+      <div class="fg fw"><label class="fl">🖼 Nueva imagen (opcional — deja vacío para mantener la actual)</label>
+        <div class="upload-zone"><input type="file" accept="image/*" onchange="handleImg(this,'ep-img-prev','ep-img-data')"><div class="upload-ic">🖼</div><div class="upload-txt">${p.img?'Imagen actual cargada. Sube otra para reemplazar.':' Clic o arrastra'}</div><div class="upload-preview" id="ep-img-prev">${p.img?`<img src="${p.img}" class="upload-thumb">`:''}
+</div></div>
+        <input type="hidden" id="ep-img-data" value="${p.img?'KEEP':''}">      </div>
+      <div class="fg fw"><label class="fl">🎬 Nuevo video (opcional)</label>
+        <div class="upload-zone"><input type="file" accept="video/*" onchange="handleVid(this,'ep-vid-prev','ep-vid-data')"><div class="upload-ic">🎬</div><div class="upload-txt">${p.video?'Video actual cargado. Sube otro para reemplazar.':' Clic o arrastra'}</div><div class="upload-preview" id="ep-vid-prev"></div></div>
+        <input type="hidden" id="ep-vid-data" value="${p.video?'KEEP':''}">      </div>
+    </div>`;
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function editMember(id){
+  const m=window._team.find(x=>x.id===id); if(!m)return;
+  _editType='member'; _editId=id;
+  document.getElementById('edit-title').textContent='✏️ Editar miembro: '+m.name;
+  document.getElementById('edit-form-content').innerHTML=`
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="em-name" value="${escHtml(m.name||'')}"></div>
+      <div class="fg"><label class="fl">Rol *</label><input type="text" class="fi" id="em-role" value="${escHtml(m.role||'')}"></div>
+      <div class="fg fw"><label class="fl">Bio</label><textarea class="fta" id="em-bio" style="min-height:65px">${escHtml(m.bio||'')}
+</textarea></div>
+      <div class="fg fw"><label class="fl">📷 Nueva foto (deja vacío para mantener la actual)</label>
+        <div class="upload-zone"><input type="file" accept="image/*" onchange="handleImg(this,'em-photo-prev','em-photo-data')"><div class="upload-ic">📷</div><div class="upload-txt">${m.photo?'Foto actual cargada. Sube otra para reemplazar.':' Clic o arrastra'}</div><div class="upload-preview" id="em-photo-prev">${m.photo?`<img src="${m.photo}" class="upload-thumb">`:''}
+</div></div>
+        <input type="hidden" id="em-photo-data" value="${m.photo?'KEEP':''}">      </div>
+      <div class="fg"><label class="fl">LinkedIn</label><input type="text" class="fi" id="em-linkedin" value="${escHtml(m.linkedin||'')}"></div>
+      <div class="fg"><label class="fl">GitHub</label><input type="text" class="fi" id="em-github" value="${escHtml(m.github||'')}"></div>
+    </div>`;
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+async function saveEdit(){
+  const btn=document.getElementById('edit-save-btn');
+  btn.disabled=true; btn.textContent='Guardando...';
+  try{
+    const {db,doc,setDoc}=window._fb;
+    if(_editType==='project'){
+      const p=window._projects.find(x=>x.id===_editId);
+      const imgRaw=document.getElementById('ep-img-data').value;
+      const vidRaw=document.getElementById('ep-vid-data').value;
+      const updated={...p,
+        name:document.getElementById('ep-name').value.trim(),
+        cat:document.getElementById('ep-cat').value,
+        desc:document.getElementById('ep-desc').value.trim(),
+        problem:document.getElementById('ep-problem').value.trim(),
+        detail:document.getElementById('ep-detail').value.trim(),
+        time:document.getElementById('ep-time').value.trim(),
+        money:document.getElementById('ep-money').value.trim(),
+        m3:document.getElementById('ep-m3').value.trim(),
+        emoji:document.getElementById('ep-emoji').value||'🚀',
+        tags:document.getElementById('ep-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+        img:imgRaw==='KEEP'?p.img:(imgRaw||p.img),
+        video:vidRaw==='KEEP'?p.video:(vidRaw||p.video),
+      };
+      await setDoc(doc(db,'projects',_editId),updated);
+      showToast('✅ Proyecto actualizado');
+    } else if(_editType==='member'){
+      const m=window._team.find(x=>x.id===_editId);
+      const photoRaw=document.getElementById('em-photo-data').value;
+      const updated={...m,
+        name:document.getElementById('em-name').value.trim(),
+        role:document.getElementById('em-role').value.trim(),
+        bio:document.getElementById('em-bio').value.trim(),
+        photo:photoRaw==='KEEP'?m.photo:(photoRaw||m.photo),
+        linkedin:document.getElementById('em-linkedin').value.trim(),
+        github:document.getElementById('em-github').value.trim(),
+      };
+      await setDoc(doc(db,'team',_editId),updated);
+      showToast('✅ Miembro actualizado');
+    }
+    closeEditOverlay();
+    renderManage();
+  }catch(e){ showToast('❌ Error: '+e.message); }
+  btn.disabled=false; btn.textContent='Guardar cambios';
+}
+
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ===== UTILS =====
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
