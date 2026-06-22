@@ -625,6 +625,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <button class="fbtn" onclick="filterP('ai',this)">IA</button>
       </div>
     </div>
+    <div id="fb-status" style="display:none;padding:.5rem 1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:.8rem;color:#f87171;margin-bottom:1rem;"></div>
     <div class="pf-grid" id="pf-grid">
       <div class="loading-pulse"><div class="dot-pulse"></div><div class="dot-pulse"></div><div class="dot-pulse"></div></div>
     </div>
@@ -851,7 +852,7 @@ function doLogin(){
   _currentUser=found;
   window._currentUser=found;
   closeAdminOverlay();
-  const be2=document.getElementById('btn-edit'); if(be2)be2.style.display='none';
+  document.querySelectorAll('#btn-edit').forEach(b=>b.style.display='none');
   const nuw=document.getElementById('nav-user-wrap');
   nuw.style.display='flex';
   document.getElementById('nav-av').textContent=initials(found.name);
@@ -863,8 +864,8 @@ function doLogin(){
 
 function doLogout(){
   _currentUser=null;window._currentUser=null;
-  const be=document.getElementById('btn-edit'); if(be)be.style.display='';
-  document.getElementById('nav-user-wrap').style.display='none';
+  document.querySelectorAll('#btn-edit').forEach(b=>b.style.display='');
+  const nuwl=document.getElementById('nav-user-wrap'); if(nuwl)nuwl.style.display='none';
   document.getElementById('admin-panel').classList.remove('visible');
   showToast('👋 Sesión cerrada');
 }
@@ -1195,8 +1196,8 @@ async function saveEdit(){
     const {db,doc,setDoc}=window._fb;
     if(_editType==='project'){
       const p=window._projects.find(x=>x.id===_editId);
-      const imgRaw=document.getElementById('ep-img-data').value;
-      const vidRaw=document.getElementById('ep-vid-data').value;
+      const imgRaw=document.getElementById('ep-img-data')?document.getElementById('ep-img-data').value:'';
+      const vidRaw=document.getElementById('ep-vid-data')?document.getElementById('ep-vid-data').value:'';
       const updated={...p,
         name:document.getElementById('ep-name').value.trim(),
         cat:document.getElementById('ep-cat').value,
@@ -1208,8 +1209,8 @@ async function saveEdit(){
         m3:document.getElementById('ep-m3').value.trim(),
         emoji:document.getElementById('ep-emoji').value||'🚀',
         tags:document.getElementById('ep-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
-        img:imgRaw==='KEEP'?p.img:(imgRaw||p.img),
-        video:vidRaw==='KEEP'?p.video:(vidRaw||p.video),
+        img:imgRaw==='KEEP'?p.img:(imgRaw||p.img||''),
+        video:vidRaw==='KEEP'?p.video:(vidRaw||p.video||''),
       };
       await setDoc(doc(db,'projects',_editId),updated);
       showToast('✅ Proyecto actualizado');
@@ -1271,6 +1272,14 @@ function editUser(id){
 }
 
 // ===== UTILS =====
+// Firebase timeout warning
+setTimeout(()=>{
+  if(!window._dataReady){
+    const s=document.getElementById('fb-status');
+    if(s){s.style.display='block';s.textContent='⚠️ No se pudo conectar a Firebase. Verifica las reglas de Firestore en console.firebase.google.com → Firestore → Reglas';}
+  }
+},5000);
+
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 window.addEventListener('scroll',()=>{document.getElementById('scroll-top').classList.toggle('visible',window.scrollY>400);});
 </script>
