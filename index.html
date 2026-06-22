@@ -653,8 +653,8 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <h3>Cuéntanos tu desafío</h3>
         <p>Ya sea que tengas un proceso que quieras automatizar o una idea de producto, estamos aquí para escucharte.</p>
         <div class="c-items">
-          <div class="c-item"><div class="c-ic">📧</div><div><span>Email</span><strong>contacto@dtanomi.com</strong></div></div>
-          <div class="c-item"><div class="c-ic">💬</div><div><span>WhatsApp</span><strong>+57 300 000 0000</strong></div></div>
+          <div class="c-item"><div class="c-ic">📧</div><div><span>Email</span><a href="mailto:gomezdaniele144@gmail.com" style="color:var(--off);text-decoration:none;font-weight:600">gomezdaniele144@gmail.com</a></div></div>
+          <div class="c-item"><div class="c-ic">💬</div><div><span>WhatsApp</span><a href="https://wa.me/573155622362" target="_blank" style="color:var(--off);text-decoration:none;font-weight:600">+57 315 562 2362</a></div></div>
           <div class="c-item"><div class="c-ic">🌐</div><div><span>Ubicación</span><strong>Colombia · Remoto Global</strong></div></div>
         </div>
       </div>
@@ -662,7 +662,27 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <div class="fgrid">
           <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="cn" placeholder="Tu nombre"></div>
           <div class="fg"><label class="fl">Email *</label><input type="email" class="fi" id="ce" placeholder="tu@empresa.com"></div>
-          <div class="fg fw"><label class="fl">Empresa</label><input type="text" class="fi" id="cc" placeholder="Nombre de tu empresa"></div>
+          <div class="fg"><label class="fl">País *</label>
+            <select class="fsel" id="cc" style="background:rgba(0,0,0,.35);border:1px solid var(--gb);border-radius:9px;color:var(--off);">
+              <option value="">Selecciona tu país</option>
+              <option value="Colombia 🇨🇴">Colombia 🇨🇴</option>
+              <option value="México 🇲🇽">México 🇲🇽</option>
+              <option value="Argentina 🇦🇷">Argentina 🇦🇷</option>
+              <option value="Chile 🇨🇱">Chile 🇨🇱</option>
+              <option value="Perú 🇵🇪">Perú 🇵🇪</option>
+              <option value="Ecuador 🇪🇨">Ecuador 🇪🇨</option>
+              <option value="Venezuela 🇻🇪">Venezuela 🇻🇪</option>
+              <option value="Bolivia 🇧🇴">Bolivia 🇧🇴</option>
+              <option value="Uruguay 🇺🇾">Uruguay 🇺🇾</option>
+              <option value="Paraguay 🇵🇾">Paraguay 🇵🇾</option>
+              <option value="Brasil 🇧🇷">Brasil 🇧🇷</option>
+              <option value="España 🇪🇸">España 🇪🇸</option>
+              <option value="Estados Unidos 🇺🇸">Estados Unidos 🇺🇸</option>
+              <option value="Canadá 🇨🇦">Canadá 🇨🇦</option>
+              <option value="Otro 🌍">Otro 🌍</option>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Empresa</label><input type="text" class="fi" id="cc2" placeholder="Nombre de tu empresa"></div>
           <div class="fg fw"><label class="fl">¿Qué necesitas automatizar? *</label><textarea class="fta" id="cm" placeholder="Describe brevemente el problema..."></textarea></div>
         </div>
         <button class="btn-f" onclick="sendContact()">Enviar mensaje →</button>
@@ -773,7 +793,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
       <p>Automatización inteligente para empresas que quieren crecer sin límites. AI · Technology.</p>
     </div>
     <div class="fcol"><h4>Empresa</h4><ul><li><a href="#about">Nosotros</a></li><li><a href="#agents">Automatización</a></li><li><a href="#portfolio">Portafolio</a></li><li><a href="#team">Equipo</a></li></ul></div>
-    <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:contacto@dtanomi.com">Email</a></li></ul></div>
+    <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:gomezdaniele144@gmail.com">Email</a></li></ul></div>
   </div>
   <div class="fbot"><span>© 2025 DTANOMI · AI Technology.</span><span>Hecho con 💜 en Colombia</span><button id="btn-edit" onclick="openAdminOverlay()" style="background:transparent;border:1px solid var(--gb);border-radius:7px;color:var(--g400);font-size:.72rem;padding:.3rem .75rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='var(--p300)'" onmouseout="this.style.color='var(--g400)'">⚙️ Editar sitio</button></div>
 </footer>
@@ -1050,7 +1070,12 @@ function renderUserList(){
         <div class="uav">${initials(u.name)}</div>
         <div><div class="uname">${u.name}<span class="${u.role==='admin'?'badga':'badgm'}">${u.role}</span></div><div class="uun">@${u.username}</div></div>
       </div>
-      ${u.id!==_currentUser?.id&&_currentUser?.role==='admin'?`<button class="bdel" onclick="deleteUser('${u.id}')">Eliminar</button>`:`<span style="font-size:.68rem;color:var(--g400)">${u.id===_currentUser?.id?'(tú)':''}</span>`}
+      <div style="display:flex;gap:.4rem;align-items:center">
+        ${_currentUser?.role==='admin'&&u.id!==_currentUser?.id?`
+          <button class="bedit" onclick="editUser('${u.id}')">✏️</button>
+          <button class="bdel" onclick="deleteUser('${u.id}')">Eliminar</button>
+        `:`<span style="font-size:.68rem;color:var(--g400)">${u.id===_currentUser?.id?'(tú — edita en ajustes)':''}</span>`}
+      </div>
     </div>`).join('');
 }
 
@@ -1084,10 +1109,17 @@ function swTab(id){
 function sendContact(){
   const n=document.getElementById('cn').value.trim();
   const e=document.getElementById('ce').value.trim();
+  const pais=document.getElementById('cc').value;
   const m=document.getElementById('cm').value.trim();
-  if(!n||!e||!m){showToast('❌ Completa los campos obligatorios');return;}
-  showToast('✅ ¡Mensaje enviado! Te contactaremos pronto.');
-  ['cn','ce','cc','cm'].forEach(id=>document.getElementById(id).value='');
+  if(!n||!e||!pais||!m){showToast('❌ Completa los campos obligatorios incluyendo país');return;}
+  // Build WhatsApp message
+  const empresa=document.getElementById('cc2')?document.getElementById('cc2').value.trim():'';
+  const msg=encodeURIComponent(`Hola DTANOMI! Soy ${n} de ${pais}${empresa?' - '+empresa:''}. Mi email: ${e}. Consulta: ${m}`);
+  window.open('https://wa.me/573155622362?text='+msg,'_blank');
+  showToast('✅ Abriendo WhatsApp...');
+  ['cn','ce','cm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cc').value='';
+  if(document.getElementById('cc2'))document.getElementById('cc2').value='';
 }
 
 
@@ -1195,13 +1227,48 @@ async function saveEdit(){
       await setDoc(doc(db,'team',_editId),updated);
       showToast('✅ Miembro actualizado');
     }
+    } else if(_editType==='user'){
+      const u=(window._users||[]).find(x=>x.id===_editId);
+      const newPass=document.getElementById('eu-pass').value;
+      const newUsername=document.getElementById('eu-username').value.trim().toLowerCase();
+      const dupUser=(window._users||[]).find(x=>x.username&&x.username.toLowerCase()===newUsername&&x.id!==_editId);
+      if(dupUser){showToast('❌ Ese nombre de usuario ya existe');btn.disabled=false;btn.textContent='Guardar cambios';return;}
+      const updated={...u,
+        name:document.getElementById('eu-name').value.trim(),
+        username:newUsername,
+        role:document.getElementById('eu-role').value,
+        password:newPass&&newPass.length>=6?newPass:u.password,
+      };
+      await setDoc(doc(db,'users',_editId),updated);
+      showToast('✅ Usuario actualizado');
+    }
     closeEditOverlay();
     renderManage();
+    renderUserList();
   }catch(e){ showToast('❌ Error: '+e.message); }
   btn.disabled=false; btn.textContent='Guardar cambios';
 }
 
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function editUser(id){
+  const u=(window._users||[]).find(x=>x.id===id); if(!u)return;
+  _editType='user'; _editId=id;
+  document.getElementById('edit-title').textContent='✏️ Editar usuario: '+u.name;
+  document.getElementById('edit-form-content').innerHTML=`
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Nombre completo *</label><input type="text" class="fi" id="eu-name" value="${escHtml(u.name||'')}"></div>
+      <div class="fg"><label class="fl">Usuario *</label><input type="text" class="fi" id="eu-username" value="${escHtml(u.username||'')}"></div>
+      <div class="fg"><label class="fl">Nueva contraseña (dejar vacío para no cambiar)</label><input type="password" class="fi" id="eu-pass" placeholder="Nueva contraseña..." autocomplete="new-password"></div>
+      <div class="fg"><label class="fl">Rol</label>
+        <select class="fsel" id="eu-role">
+          <option value="member" ${u.role==='member'?'selected':''}>Miembro</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+        </select>
+      </div>
+    </div>`;
+  document.getElementById('edit-overlay').classList.add('open');
+}
 
 // ===== UTILS =====
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
