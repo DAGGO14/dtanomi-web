@@ -942,12 +942,16 @@ async function addProject(){
   try{
     const {db,doc,setDoc}=window._fb;
     await setDoc(doc(db,'projects',id),proj);
+    // Limpiar TODOS los campos del formulario
     ['pn','pd','pprob','pdet','pt','pm','pm3','ptags'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('pem').value='🚀';
+    document.getElementById('pc').value='python';
     ['pimg-data','pvid-data'].forEach(x=>document.getElementById(x).value='');
     ['pimg-prev','pvid-prev','pgal-prev'].forEach(x=>document.getElementById(x).innerHTML='');
     document.getElementById('pgal-data').value='[]';
-    showToast('✅ Proyecto publicado y sincronizado en todos los dispositivos');
+    // Limpiar los inputs de archivo (file inputs)
+    document.querySelectorAll('#tp input[type="file"]').forEach(x=>x.value='');
+    showToast('✅ Proyecto publicado. Formulario limpio para el siguiente.');
   }catch(e){showToast('❌ Error guardando en Firebase: '+e.message);}
   btn.disabled=false;btn.textContent='Publicar proyecto en Firebase';
 }
@@ -1034,8 +1038,8 @@ async function delMember(id){
 }
 function renderManage(){
   const pp=document.getElementById('mg-p');const mm=document.getElementById('mg-m');if(!pp)return;
-  pp.innerHTML=window._projects.length?window._projects.map(p=>`<div class="mitem"><span>${p.emoji||''} ${p.name}</span><button class="bdel" onclick="delProject('${p.id}')">Eliminar</button></div>`).join(''):'<p style="color:var(--g400);font-size:.78rem">No hay proyectos.</p>';
-  mm.innerHTML=window._team.map(m=>`<div class="mitem"><span>👤 ${m.name} · <span style="color:var(--g400)">${m.role}</span></span><button class="bdel" onclick="delMember('${m.id}')">Eliminar</button></div>`).join('');
+  pp.innerHTML=window._projects.length?window._projects.map(p=>`<div class="mitem"><span>${p.emoji||''} ${p.name}</span><div style="display:flex;gap:.4rem"><button class="bedit" onclick="editProject('${p.id}')">✏️ Editar</button><button class="bdel" onclick="delProject('${p.id}')">🗑 Eliminar</button></div></div>`).join(''):'<p style="color:var(--g400);font-size:.78rem">No hay proyectos.</p>';
+  mm.innerHTML=window._team.length?window._team.map(m=>`<div class="mitem"><span>👤 ${m.name} · <span style="color:var(--g400)">${m.role}</span></span><div style="display:flex;gap:.4rem"><button class="bedit" onclick="editMember('${m.id}')">✏️ Editar</button><button class="bdel" onclick="delMember('${m.id}')">🗑 Eliminar</button></div></div>`).join(''):'<p style="color:var(--g400);font-size:.78rem">No hay miembros.</p>';
 }
 
 // ===== TABS =====
