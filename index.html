@@ -401,6 +401,15 @@ section{padding:6rem 2rem;}
 .bedit{background:rgba(123,47,255,.15);border:1px solid rgba(168,85,247,.3);border-radius:6px;color:var(--p300);padding:.22rem .58rem;cursor:pointer;font-size:.68rem;transition:all .2s;margin-left:.4rem;}
 .bedit:hover{background:rgba(123,47,255,.3);}
 
+
+/* EDIT OVERLAY */
+#edit-overlay{position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:1rem;}
+#edit-overlay.open{display:flex;}
+.edit-box{width:100%;max-width:700px;max-height:90vh;overflow-y:auto;background:var(--bg2);border:1px solid var(--gb);border-radius:17px;padding:2rem;position:relative;}
+.edit-box-title{font-family:"Space Grotesk",sans-serif;font-size:1.05rem;font-weight:600;color:var(--p300);margin-bottom:1.25rem;}
+.edit-close{position:absolute;top:.85rem;right:.85rem;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.5);border:1px solid var(--gb);color:var(--g400);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.95rem;transition:all .2s;}
+.edit-close:hover{background:rgba(239,68,68,.15);color:#f87171;}
+
 /* FOOTER */
 footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 1.35rem;}
 .fi-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:2.25rem;padding-bottom:1.65rem;border-bottom:1px solid var(--gb);}
@@ -653,8 +662,8 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <h3>Cuéntanos tu desafío</h3>
         <p>Ya sea que tengas un proceso que quieras automatizar o una idea de producto, estamos aquí para escucharte.</p>
         <div class="c-items">
-          <div class="c-item"><div class="c-ic">📧</div><div><span>Email</span><strong>contacto@dtanomi.com</strong></div></div>
-          <div class="c-item"><div class="c-ic">💬</div><div><span>WhatsApp</span><strong>+57 300 000 0000</strong></div></div>
+          <div class="c-item"><div class="c-ic">📧</div><div><span>Email</span><a href="mailto:gomezdaniele144@gmail.com" style="color:var(--off);text-decoration:none;font-weight:600">gomezdaniele144@gmail.com</a></div></div>
+          <div class="c-item"><div class="c-ic">💬</div><div><span>WhatsApp</span><a href="https://wa.me/573155622362" target="_blank" style="color:var(--off);text-decoration:none;font-weight:600">+57 315 562 2362 ↗</a></div></div>
           <div class="c-item"><div class="c-ic">🌐</div><div><span>Ubicación</span><strong>Colombia · Remoto Global</strong></div></div>
         </div>
       </div>
@@ -662,7 +671,27 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <div class="fgrid">
           <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="cn" placeholder="Tu nombre"></div>
           <div class="fg"><label class="fl">Email *</label><input type="email" class="fi" id="ce" placeholder="tu@empresa.com"></div>
-          <div class="fg fw"><label class="fl">Empresa</label><input type="text" class="fi" id="cc" placeholder="Nombre de tu empresa"></div>
+          <div class="fg"><label class="fl">País *</label>
+            <select class="fsel" id="cc" style="background:rgba(0,0,0,.35);border:1px solid var(--gb);border-radius:9px;color:var(--off)">
+              <option value="">Selecciona tu país</option>
+              <option value="Colombia 🇨🇴">Colombia 🇨🇴</option>
+              <option value="México 🇲🇽">México 🇲🇽</option>
+              <option value="Argentina 🇦🇷">Argentina 🇦🇷</option>
+              <option value="Chile 🇨🇱">Chile 🇨🇱</option>
+              <option value="Perú 🇵🇪">Perú 🇵🇪</option>
+              <option value="Ecuador 🇪🇨">Ecuador 🇪🇨</option>
+              <option value="Venezuela 🇻🇪">Venezuela 🇻🇪</option>
+              <option value="Bolivia 🇧🇴">Bolivia 🇧🇴</option>
+              <option value="Uruguay 🇺🇾">Uruguay 🇺🇾</option>
+              <option value="Paraguay 🇵🇾">Paraguay 🇵🇾</option>
+              <option value="Brasil 🇧🇷">Brasil 🇧🇷</option>
+              <option value="España 🇪🇸">España 🇪🇸</option>
+              <option value="Estados Unidos 🇺🇸">Estados Unidos 🇺🇸</option>
+              <option value="Canadá 🇨🇦">Canadá 🇨🇦</option>
+              <option value="Otro 🌍">Otro 🌍</option>
+            </select>
+          </div>
+          <div class="fg"><label class="fl">Empresa</label><input type="text" class="fi" id="cc2" placeholder="Nombre de tu empresa (opcional)"></div>
           <div class="fg fw"><label class="fl">¿Qué necesitas automatizar? *</label><textarea class="fta" id="cm" placeholder="Describe brevemente el problema..."></textarea></div>
         </div>
         <button class="btn-f" onclick="sendContact()">Enviar mensaje →</button>
@@ -765,6 +794,17 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
   </div>
 </div>
 
+
+<!-- EDIT OVERLAY -->
+<div id="edit-overlay" onclick="if(event.target===this)closeEditOverlay()">
+  <div class="edit-box">
+    <button class="edit-close" onclick="closeEditOverlay()">✕</button>
+    <div class="edit-box-title" id="edit-title">Editar</div>
+    <div id="edit-form-content"></div>
+    <button class="btn-f" id="edit-save-btn" onclick="saveEdit()" style="margin-top:1rem">Guardar cambios en Firebase</button>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <div class="fi-inner">
@@ -773,7 +813,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
       <p>Automatización inteligente para empresas que quieren crecer sin límites. AI · Technology.</p>
     </div>
     <div class="fcol"><h4>Empresa</h4><ul><li><a href="#about">Nosotros</a></li><li><a href="#agents">Automatización</a></li><li><a href="#portfolio">Portafolio</a></li><li><a href="#team">Equipo</a></li></ul></div>
-    <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:contacto@dtanomi.com">Email</a></li></ul></div>
+    <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:gomezdaniele144@gmail.com">Email</a></li></ul></div>
   </div>
   <div class="fbot"><span>© 2025 DTANOMI · AI Technology.</span><span>Hecho con 💜 en Colombia</span><button id="btn-edit" onclick="openAdminOverlay()" style="background:transparent;border:1px solid var(--gb);border-radius:7px;color:var(--g400);font-size:.72rem;padding:.3rem .75rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='var(--p300)'" onmouseout="this.style.color='var(--g400)'">⚙️ Editar sitio</button></div>
 </footer>
@@ -1050,7 +1090,12 @@ function renderUserList(){
         <div class="uav">${initials(u.name)}</div>
         <div><div class="uname">${u.name}<span class="${u.role==='admin'?'badga':'badgm'}">${u.role}</span></div><div class="uun">@${u.username}</div></div>
       </div>
-      ${u.id!==_currentUser?.id&&_currentUser?.role==='admin'?`<button class="bdel" onclick="deleteUser('${u.id}')">Eliminar</button>`:`<span style="font-size:.68rem;color:var(--g400)">${u.id===_currentUser?.id?'(tú)':''}</span>`}
+      <div style="display:flex;gap:.4rem;align-items:center">
+        ${u.id!==_currentUser?.id&&_currentUser?.role==='admin'?`
+          <button class="bedit" onclick="editUser('${u.id}')">✏️ Editar</button>
+          <button class="bdel" onclick="deleteUser('${u.id}')">Eliminar</button>
+        `:`<span style="font-size:.68rem;color:var(--g400)">${u.id===_currentUser?.id?'(tú)':''}</span>`}
+      </div>
     </div>`).join('');
 }
 
@@ -1084,10 +1129,16 @@ function swTab(id){
 function sendContact(){
   const n=document.getElementById('cn').value.trim();
   const e=document.getElementById('ce').value.trim();
+  const pais=document.getElementById('cc').value;
   const m=document.getElementById('cm').value.trim();
-  if(!n||!e||!m){showToast('❌ Completa los campos obligatorios');return;}
-  showToast('✅ ¡Mensaje enviado! Te contactaremos pronto.');
-  ['cn','ce','cc','cm'].forEach(id=>document.getElementById(id).value='');
+  if(!n||!e||!pais||!m){showToast('❌ Completa todos los campos obligatorios');return;}
+  const empresa=document.getElementById('cc2')?document.getElementById('cc2').value.trim():'';
+  const msg=encodeURIComponent('Hola DTANOMI! Soy '+n+' de '+pais+(empresa?' - '+empresa:'')+'. Email: '+e+'. Consulta: '+m);
+  window.open('https://wa.me/573155622362?text='+msg,'_blank');
+  showToast('✅ Abriendo WhatsApp...');
+  ['cn','ce','cm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cc').value='';
+  if(document.getElementById('cc2'))document.getElementById('cc2').value='';
 }
 
 
@@ -1202,6 +1253,144 @@ async function saveEdit(){
 }
 
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+// ===== EDIT OVERLAY =====
+let _editType=null,_editId=null;
+function closeEditOverlay(){document.getElementById('edit-overlay').classList.remove('open');_editType=null;_editId=null;}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function editProject(id){
+  const p=window._projects.find(x=>x.id===id);if(!p)return;
+  _editType='project';_editId=id;
+  document.getElementById('edit-title').textContent='✏️ Editar: '+p.name;
+  document.getElementById('edit-form-content').innerHTML=`
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="ep-name" value="${escH(p.name)}"></div>
+      <div class="fg"><label class="fl">Categoría</label><select class="fsel" id="ep-cat">
+        <option value="python" ${p.cat==='python'?'selected':''}>🐍 Python</option>
+        <option value="bot" ${p.cat==='bot'?'selected':''}>🤖 Bot</option>
+        <option value="web" ${p.cat==='web'?'selected':''}>🌐 Web</option>
+        <option value="ai" ${p.cat==='ai'?'selected':''}>🧠 IA</option>
+      </select></div>
+      <div class="fg fw"><label class="fl">¿Qué hace?</label><input type="text" class="fi" id="ep-desc" value="${escH(p.desc)}"></div>
+      <div class="fg fw"><label class="fl">Problema que resuelve</label><textarea class="fta" id="ep-problem">${escH(p.problem)}</textarea></div>
+      <div class="fg fw"><label class="fl">Detalles completos</label><textarea class="fta" id="ep-detail" style="min-height:90px">${escH(p.detail)}</textarea></div>
+      <div class="fg"><label class="fl">⏱ Tiempo ahorrado</label><input type="text" class="fi" id="ep-time" value="${escH(p.time)}"></div>
+      <div class="fg"><label class="fl">💰 Ahorro</label><input type="text" class="fi" id="ep-money" value="${escH(p.money)}"></div>
+      <div class="fg"><label class="fl">📊 Métrica extra</label><input type="text" class="fi" id="ep-m3" value="${escH(p.m3)}"></div>
+      <div class="fg"><label class="fl">🏷 Tags (coma)</label><input type="text" class="fi" id="ep-tags" value="${escH((p.tags||[]).join(', '))}"></div>
+      <div class="fg"><label class="fl">Emoji</label><input type="text" class="fi" id="ep-emoji" value="${escH(p.emoji||'🚀')}" maxlength="4"></div>
+      <div class="fg fw"><label class="fl">🖼 Nueva imagen (vacío = mantener actual)</label>
+        <div class="upload-zone"><input type="file" accept="image/*" onchange="handleImg(this,'ep-img-prev','ep-img-data')">
+        <div class="upload-ic">🖼</div><div class="upload-txt">${p.img?'Imagen cargada — sube otra para reemplazar':'Clic o arrastra'}</div>
+        <div class="upload-preview" id="ep-img-prev">${p.img?`<img src="${p.img}" class="upload-thumb">`:''}</div></div>
+        <input type="hidden" id="ep-img-data" value="${p.img?'__KEEP__':''}">
+      </div>
+      <div class="fg fw"><label class="fl">🎬 Nuevo video (vacío = mantener actual)</label>
+        <div class="upload-zone"><input type="file" accept="video/*" onchange="handleVid(this,'ep-vid-prev','ep-vid-data')">
+        <div class="upload-ic">🎬</div><div class="upload-txt">${p.video?'Video cargado — sube otro para reemplazar':'Clic o arrastra'}</div>
+        <div class="upload-preview" id="ep-vid-prev"></div></div>
+        <input type="hidden" id="ep-vid-data" value="${p.video?'__KEEP__':''}">
+      </div>
+    </div>`;
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function editMember(id){
+  const m=window._team.find(x=>x.id===id);if(!m)return;
+  _editType='member';_editId=id;
+  document.getElementById('edit-title').textContent='✏️ Editar miembro: '+m.name;
+  document.getElementById('edit-form-content').innerHTML=`
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="em-name" value="${escH(m.name)}"></div>
+      <div class="fg"><label class="fl">Rol *</label><input type="text" class="fi" id="em-role" value="${escH(m.role)}"></div>
+      <div class="fg fw"><label class="fl">Bio</label><textarea class="fta" id="em-bio" style="min-height:65px">${escH(m.bio)}</textarea></div>
+      <div class="fg fw"><label class="fl">📷 Nueva foto (vacío = mantener actual)</label>
+        <div class="upload-zone"><input type="file" accept="image/*" onchange="handleImg(this,'em-photo-prev','em-photo-data')">
+        <div class="upload-ic">📷</div><div class="upload-txt">${m.photo?'Foto cargada — sube otra para reemplazar':'Clic o arrastra'}</div>
+        <div class="upload-preview" id="em-photo-prev">${m.photo?`<img src="${m.photo}" class="upload-thumb">`:''}</div></div>
+        <input type="hidden" id="em-photo-data" value="${m.photo?'__KEEP__':''}">
+      </div>
+      <div class="fg"><label class="fl">LinkedIn</label><input type="text" class="fi" id="em-linkedin" value="${escH(m.linkedin)}"></div>
+      <div class="fg"><label class="fl">GitHub</label><input type="text" class="fi" id="em-github" value="${escH(m.github)}"></div>
+    </div>`;
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+function editUser(id){
+  const u=(window._users||[]).find(x=>x.id===id);if(!u)return;
+  _editType='user';_editId=id;
+  document.getElementById('edit-title').textContent='✏️ Editar usuario: '+u.name;
+  document.getElementById('edit-form-content').innerHTML=`
+    <div class="fgrid">
+      <div class="fg"><label class="fl">Nombre completo *</label><input type="text" class="fi" id="eu-name" value="${escH(u.name)}"></div>
+      <div class="fg"><label class="fl">Usuario *</label><input type="text" class="fi" id="eu-username" value="${escH(u.username)}"></div>
+      <div class="fg"><label class="fl">Nueva contraseña (vacío = no cambiar)</label><input type="password" class="fi" id="eu-pass" placeholder="Nueva contraseña..." autocomplete="new-password"></div>
+      <div class="fg"><label class="fl">Rol</label><select class="fsel" id="eu-role">
+        <option value="member" ${u.role==='member'?'selected':''}>Miembro</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+      </select></div>
+    </div>`;
+  document.getElementById('edit-overlay').classList.add('open');
+}
+
+async function saveEdit(){
+  const btn=document.getElementById('edit-save-btn');
+  btn.disabled=true;btn.textContent='Guardando...';
+  try{
+    const {db,doc,setDoc}=window._fb;
+    if(_editType==='project'){
+      const p=window._projects.find(x=>x.id===_editId);
+      const imgRaw=document.getElementById('ep-img-data').value;
+      const vidRaw=document.getElementById('ep-vid-data').value;
+      await setDoc(doc(db,'projects',_editId),{...p,
+        name:document.getElementById('ep-name').value.trim(),
+        cat:document.getElementById('ep-cat').value,
+        desc:document.getElementById('ep-desc').value.trim(),
+        problem:document.getElementById('ep-problem').value.trim(),
+        detail:document.getElementById('ep-detail').value.trim(),
+        time:document.getElementById('ep-time').value.trim(),
+        money:document.getElementById('ep-money').value.trim(),
+        m3:document.getElementById('ep-m3').value.trim(),
+        emoji:document.getElementById('ep-emoji').value||'🚀',
+        tags:document.getElementById('ep-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
+        img:imgRaw==='__KEEP__'?p.img:(imgRaw||p.img||''),
+        video:vidRaw==='__KEEP__'?p.video:(vidRaw||p.video||''),
+      });
+      showToast('✅ Proyecto actualizado');
+    } else if(_editType==='member'){
+      const m=window._team.find(x=>x.id===_editId);
+      const photoRaw=document.getElementById('em-photo-data').value;
+      await setDoc(doc(db,'team',_editId),{...m,
+        name:document.getElementById('em-name').value.trim(),
+        role:document.getElementById('em-role').value.trim(),
+        bio:document.getElementById('em-bio').value.trim(),
+        photo:photoRaw==='__KEEP__'?m.photo:(photoRaw||m.photo||''),
+        linkedin:document.getElementById('em-linkedin').value.trim(),
+        github:document.getElementById('em-github').value.trim(),
+      });
+      showToast('✅ Miembro actualizado');
+    } else if(_editType==='user'){
+      const u=(window._users||[]).find(x=>x.id===_editId);
+      const newUser=document.getElementById('eu-username').value.trim().toLowerCase();
+      const newPass=document.getElementById('eu-pass').value;
+      const dup=(window._users||[]).find(x=>x.username&&x.username.toLowerCase()===newUser&&x.id!==_editId);
+      if(dup){showToast('❌ Ese usuario ya existe');btn.disabled=false;btn.textContent='Guardar cambios en Firebase';return;}
+      await setDoc(doc(db,'users',_editId),{...u,
+        name:document.getElementById('eu-name').value.trim(),
+        username:newUser,
+        role:document.getElementById('eu-role').value,
+        password:newPass&&newPass.length>=6?newPass:u.password,
+      });
+      showToast('✅ Usuario actualizado');
+    }
+    closeEditOverlay();
+    renderManage();
+    renderUserList();
+  }catch(e){showToast('❌ Error: '+e.message);}
+  btn.disabled=false;btn.textContent='Guardar cambios en Firebase';
+}
 
 // ===== UTILS =====
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
