@@ -10,7 +10,7 @@
 <!-- FIREBASE -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBjnX7Szx0VH49wkJAw1lBxKuTE-3vuR1U",
@@ -21,89 +21,103 @@
     appId: "1:698985522716:web:d2267f4aeb21f55bb921d9"
   };
 
-  let app, db;
-  try {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-  } catch(e) {
-    console.error("Firebase init error:", e);
-    window._fbError = e.message;
-    window.dispatchEvent(new Event("firebase-error"));
-  }
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
+  // Expose firebase helpers globally
   window._fb = { db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot };
   window._projects = [];
   window._team = [];
   window._users = [];
 
-  let _got = { projects: false, team: false, users: false };
+  // Track which collections have received their first snapshot
+  let _ready = { projects: false, team: false, users: false };
 
-  function tryRender() {
-    if (_got.projects && _got.team && _got.users) {
+  function checkAllReady() {
+    if (_ready.projects && _ready.team && _ready.users) {
       window._dataReady = true;
+      // Safe render: functions are defined in non-module script below
       if (typeof renderPortfolio === 'function') renderPortfolio();
       if (typeof renderTeam === 'function') renderTeam();
       if (typeof updateStatCount === 'function') updateStatCount();
-      if (typeof renderUserList === 'function') renderUserList();
     }
   }
 
-  function startListeners() {
-    onSnapshot(collection(db, "projects"),
-      snap => {
-        window._projects = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
-        _got.projects = true;
-        if (window._dataReady) { renderPortfolio(); updateStatCount(); } else tryRender();
-      },
-      err => { console.error("projects listener:", err); _got.projects=true; tryRender(); }
-    );
-    onSnapshot(collection(db, "team"),
-      snap => {
-        window._team = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
-        _got.team = true;
-        if (window._dataReady) renderTeam(); else tryRender();
-      },
-      err => { console.error("team listener:", err); _got.team=true; tryRender(); }
-    );
-    onSnapshot(collection(db, "users"),
-      snap => {
-        window._users = snap.docs.map(d=>({...d.data(),id:d.id}));
-        _got.users = true;
-        if (window._dataReady && window._currentUser?.role==="admin") renderUserList();
-        else tryRender();
-      },
-      err => { console.error("users listener:", err); _got.users=true; tryRender(); }
-    );
-  }
+  // Real-time listeners — each fires immediately with current data
+  onSnapshot(collection(db, "projects"), snap => {
+    window._projects = snap.docs.map(d => d.data()).sort((a,b) => (a.order||0)-(b.order||0));
+    _ready.projects = true;
+    if (window._dataReady) {
+      if (typeof renderPortfolio === 'function') renderPortfolio();
+      if (typeof updateStatCount === 'function') updateStatCount();
+    } else { checkAllReady(); }
+  });
 
+  onSnapshot(collection(db, "team"), snap => {
+    window._team = snap.docs.map(d => d.data()).sort((a,b) => (a.order||0)-(b.order||0));
+    _ready.team = true;
+    if (window._dataReady) {
+      if (typeof renderTeam === 'function') renderTeam();
+    } else { checkAllReady(); }
+  });
+
+  onSnapshot(collection(db, "users"), snap => {
+    window._users = snap.docs.map(d => d.data());
+    _ready.users = true;
+    if (window._dataReady && window._currentUser?.role === "admin") {
+      if (typeof renderUserList === 'function') renderUserList();
+    } else { checkAllReady(); }
+  });
+
+  // Seed defaults if collections are empty (only runs once ever)
   async function seedIfEmpty() {
     try {
       const usersSnap = await getDocs(collection(db, "users"));
       if (usersSnap.empty) {
-        await setDoc(doc(db,"users","admin"),{id:"admin",name:"Admin DTANOMI",username:"admin",password:"dtanomi2025",role:"admin"});
+        await setDoc(doc(db, "users", "admin"), {
+          id: "admin", name: "Admin DTANOMI", username: "admin", password: "dtanomi2025", role: "admin"
+        });
       }
       const projSnap = await getDocs(collection(db, "projects"));
       if (projSnap.empty) {
-        const dp=[
-          {id:"p1",name:"Sistema de Reportes Automáticos",cat:"python",emoji:"📊",desc:"Genera reportes de ventas semanales y los envía por email automáticamente",problem:"El equipo gastaba 4 horas cada lunes generando reportes en Excel.",detail:"Script Python con pandas conectado al ERP.",time:"20h/semana",money:"$800/mes",m3:"100% preciso",tags:["Python","pandas","Excel","SMTP"],img:"",video:"",gallery:[],order:1},
-          {id:"p2",name:"Bot de Atención al Cliente",cat:"bot",emoji:"🤖",desc:"Bot de WhatsApp que responde consultas y agenda citas automáticamente",problem:"El equipo perdía horas respondiendo las mismas preguntas.",detail:"WhatsApp Business API + NLP.",time:"15h/semana",money:"$1,200/mes",m3:"89% satisfacción",tags:["WhatsApp API","Python","NLP"],img:"",video:"",gallery:[],order:2},
-          {id:"p3",name:"Dashboard en Tiempo Real",cat:"web",emoji:"📈",desc:"Plataforma que consolida datos de múltiples fuentes",problem:"Los directivos revisaban 6 sistemas distintos.",detail:"React + FastAPI + PostgreSQL.",time:"10h/semana",money:"Mejor decisiones",m3:"6 sistemas integrados",tags:["React","FastAPI","PostgreSQL"],img:"",video:"",gallery:[],order:3}
+        const dp = [
+          { id:"p1", name:"Sistema de Reportes Automáticos", cat:"python", emoji:"📊",
+            desc:"Genera reportes de ventas semanales y los envía por email automáticamente",
+            problem:"El equipo gastaba 4 horas cada lunes generando reportes en Excel.",
+            detail:"Script Python con pandas que conecta al ERP y envía el reporte cada lunes a las 8am.",
+            time:"20h/semana", money:"$800/mes", m3:"100% preciso",
+            tags:["Python","pandas","Excel","SMTP"], img:"", video:"", gallery:[], order:1 },
+          { id:"p2", name:"Bot de Atención al Cliente", cat:"bot", emoji:"🤖",
+            desc:"Bot de WhatsApp que responde consultas y agenda citas automáticamente",
+            problem:"El equipo perdía horas respondiendo las mismas preguntas por WhatsApp.",
+            detail:"Bot con WhatsApp Business API + NLP que agenda citas en Google Calendar.",
+            time:"15h/semana", money:"$1,200/mes", m3:"89% satisfacción",
+            tags:["WhatsApp API","Python","NLP"], img:"", video:"", gallery:[], order:2 },
+          { id:"p3", name:"Dashboard en Tiempo Real", cat:"web", emoji:"📈",
+            desc:"Plataforma que consolida datos de múltiples fuentes en un dashboard",
+            problem:"Los directivos revisaban 6 sistemas distintos para tener visión del negocio.",
+            detail:"React + FastAPI + PostgreSQL conectando CRM, ERP y Google Sheets.",
+            time:"10h/semana", money:"Mejor decisiones", m3:"6 sistemas integrados",
+            tags:["React","FastAPI","PostgreSQL"], img:"", video:"", gallery:[], order:3 }
         ];
-        for(const p of dp) await setDoc(doc(db,"projects",p.id),p);
+        for (const p of dp) await setDoc(doc(db, "projects", p.id), p);
       }
       const teamSnap = await getDocs(collection(db, "team"));
       if (teamSnap.empty) {
-        const dt=[
-          {id:"t1",name:"Alejandro Torres",role:"CEO & Full Stack Developer",bio:"Fundador de DTANOMI.",photo:"",linkedin:"",github:"",order:1},
-          {id:"t2",name:"María López",role:"AI & Data Engineer",bio:"Experta en machine learning.",photo:"",linkedin:"",github:"",order:2},
-          {id:"t3",name:"David Ríos",role:"Bot Developer",bio:"Maestro de los bots.",photo:"",linkedin:"",github:"",order:3}
+        const dt = [
+          { id:"t1", name:"Alejandro Torres", role:"CEO & Full Stack Developer",
+            bio:"Fundador de DTANOMI. Especialista en arquitecturas de software y automatización.", photo:"", linkedin:"", github:"", order:1 },
+          { id:"t2", name:"María López", role:"AI & Data Engineer",
+            bio:"Experta en machine learning y procesamiento de datos.", photo:"", linkedin:"", github:"", order:2 },
+          { id:"t3", name:"David Ríos", role:"Bot Developer & Automation",
+            bio:"Maestro de los bots y las integraciones.", photo:"", linkedin:"", github:"", order:3 }
         ];
-        for(const t of dt) await setDoc(doc(db,"team",t.id),t);
+        for (const t of dt) await setDoc(doc(db, "team", t.id), t);
       }
-    } catch(e) { console.warn("Seed error (probably rules not set):", e.message); }
+    } catch(e) { console.warn("Seed error:", e); }
   }
 
-  if (db) { startListeners(); seedIfEmpty(); }
+  seedIfEmpty();
 </script>
 
 <style>
@@ -611,7 +625,6 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <button class="fbtn" onclick="filterP('ai',this)">IA</button>
       </div>
     </div>
-    <div id="fb-status" style="display:none;padding:.5rem 1rem;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;font-size:.8rem;color:#f87171;margin-bottom:1rem;"></div>
     <div class="pf-grid" id="pf-grid">
       <div class="loading-pulse"><div class="dot-pulse"></div><div class="dot-pulse"></div><div class="dot-pulse"></div></div>
     </div>
@@ -640,8 +653,8 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <h3>Cuéntanos tu desafío</h3>
         <p>Ya sea que tengas un proceso que quieras automatizar o una idea de producto, estamos aquí para escucharte.</p>
         <div class="c-items">
-          <div class="c-item"><div class="c-ic">📧</div><div><span>Email</span><a href="mailto:gomezdaniele144@gmail.com" style="color:var(--off);text-decoration:none;font-weight:600">gomezdaniele144@gmail.com</a></div></div>
-          <div class="c-item"><div class="c-ic">💬</div><div><span>WhatsApp</span><a href="https://wa.me/573155622362" target="_blank" style="color:var(--off);text-decoration:none;font-weight:600">+57 315 562 2362</a></div></div>
+          <div class="c-item"><div class="c-ic">📧</div><div><span>Email</span><strong>contacto@dtanomi.com</strong></div></div>
+          <div class="c-item"><div class="c-ic">💬</div><div><span>WhatsApp</span><strong>+57 300 000 0000</strong></div></div>
           <div class="c-item"><div class="c-ic">🌐</div><div><span>Ubicación</span><strong>Colombia · Remoto Global</strong></div></div>
         </div>
       </div>
@@ -649,27 +662,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
         <div class="fgrid">
           <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="cn" placeholder="Tu nombre"></div>
           <div class="fg"><label class="fl">Email *</label><input type="email" class="fi" id="ce" placeholder="tu@empresa.com"></div>
-          <div class="fg"><label class="fl">País *</label>
-            <select class="fsel" id="cc" style="background:rgba(0,0,0,.35);border:1px solid var(--gb);border-radius:9px;color:var(--off);">
-              <option value="">Selecciona tu país</option>
-              <option value="Colombia 🇨🇴">Colombia 🇨🇴</option>
-              <option value="México 🇲🇽">México 🇲🇽</option>
-              <option value="Argentina 🇦🇷">Argentina 🇦🇷</option>
-              <option value="Chile 🇨🇱">Chile 🇨🇱</option>
-              <option value="Perú 🇵🇪">Perú 🇵🇪</option>
-              <option value="Ecuador 🇪🇨">Ecuador 🇪🇨</option>
-              <option value="Venezuela 🇻🇪">Venezuela 🇻🇪</option>
-              <option value="Bolivia 🇧🇴">Bolivia 🇧🇴</option>
-              <option value="Uruguay 🇺🇾">Uruguay 🇺🇾</option>
-              <option value="Paraguay 🇵🇾">Paraguay 🇵🇾</option>
-              <option value="Brasil 🇧🇷">Brasil 🇧🇷</option>
-              <option value="España 🇪🇸">España 🇪🇸</option>
-              <option value="Estados Unidos 🇺🇸">Estados Unidos 🇺🇸</option>
-              <option value="Canadá 🇨🇦">Canadá 🇨🇦</option>
-              <option value="Otro 🌍">Otro 🌍</option>
-            </select>
-          </div>
-          <div class="fg"><label class="fl">Empresa</label><input type="text" class="fi" id="cc2" placeholder="Nombre de tu empresa"></div>
+          <div class="fg fw"><label class="fl">Empresa</label><input type="text" class="fi" id="cc" placeholder="Nombre de tu empresa"></div>
           <div class="fg fw"><label class="fl">¿Qué necesitas automatizar? *</label><textarea class="fta" id="cm" placeholder="Describe brevemente el problema..."></textarea></div>
         </div>
         <button class="btn-f" onclick="sendContact()">Enviar mensaje →</button>
@@ -780,9 +773,9 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
       <p>Automatización inteligente para empresas que quieren crecer sin límites. AI · Technology.</p>
     </div>
     <div class="fcol"><h4>Empresa</h4><ul><li><a href="#about">Nosotros</a></li><li><a href="#agents">Automatización</a></li><li><a href="#portfolio">Portafolio</a></li><li><a href="#team">Equipo</a></li></ul></div>
-    <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:gomezdaniele144@gmail.com">Email</a></li></ul></div>
+    <div class="fcol"><h4>Contacto</h4><ul><li><a href="#contact">Agendar reunión</a></li><li><a href="mailto:contacto@dtanomi.com">Email</a></li></ul></div>
   </div>
-  <div class="fbot"><span>© 2025 DTANOMI · AI Technology.</span><span>Hecho con 💜 en Colombia</span><button id="btn-edit" onclick="document.getElementById('admin-overlay').classList.add('open')" style="background:transparent;border:1px solid var(--gb);border-radius:7px;color:var(--g400);font-size:.72rem;padding:.3rem .75rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='var(--p300)'" onmouseout="this.style.color='var(--g400)'">⚙️ Editar sitio</button></div>
+  <div class="fbot"><span>© 2025 DTANOMI · AI Technology.</span><span>Hecho con 💜 en Colombia</span><button id="btn-edit" onclick="openAdminOverlay()" style="background:transparent;border:1px solid var(--gb);border-radius:7px;color:var(--g400);font-size:.72rem;padding:.3rem .75rem;cursor:pointer;transition:all .2s" onmouseover="this.style.color='var(--p300)'" onmouseout="this.style.color='var(--g400)'">⚙️ Editar sitio</button></div>
 </footer>
 
 <!-- MODAL -->
@@ -833,21 +826,16 @@ function closeAdminOverlay(){document.getElementById('admin-overlay').classList.
 function doLogin(){
   const u=document.getElementById('lu').value.trim().toLowerCase();
   const p=document.getElementById('lp').value;
-  const users=window._users||[];
-  if(!users.length){showToast('⚠️ Aún cargando datos, espera un momento e intenta de nuevo');return;}
-  const found=users.find(x=>x.username&&x.username.toLowerCase()===u&&x.password===p);
+  const found=(window._users||[]).find(x=>x.username&&x.username.toLowerCase()===u&&x.password===p);
   if(!found){document.getElementById('lerr').style.display='block';return;}
   _currentUser=found;
   window._currentUser=found;
-  document.getElementById('admin-overlay').classList.remove('open');
-  document.getElementById('lerr').style.display='none';
-  document.querySelectorAll('#btn-edit').forEach(b=>b.style.display='none');
+  closeAdminOverlay();
+  const be2=document.getElementById('btn-edit'); if(be2)be2.style.display='none';
   const nuw=document.getElementById('nav-user-wrap');
-  if(nuw)nuw.style.display='flex';
-  const navAv=document.getElementById('nav-av');
-  const navUn=document.getElementById('nav-uname');
-  if(navAv)navAv.textContent=initials(found.name);
-  if(navUn)navUn.textContent=found.name.split(' ')[0];
+  nuw.style.display='flex';
+  document.getElementById('nav-av').textContent=initials(found.name);
+  document.getElementById('nav-uname').textContent=found.name.split(' ')[0];
   document.getElementById('admin-panel').classList.add('visible');
   renderUserList();renderManage();
   showToast('✅ Bienvenido, '+found.name.split(' ')[0]);
@@ -855,8 +843,8 @@ function doLogin(){
 
 function doLogout(){
   _currentUser=null;window._currentUser=null;
-  document.querySelectorAll('#btn-edit').forEach(b=>b.style.display='');
-
+  const be=document.getElementById('btn-edit'); if(be)be.style.display='';
+  document.getElementById('nav-user-wrap').style.display='none';
   document.getElementById('admin-panel').classList.remove('visible');
   showToast('👋 Sesión cerrada');
 }
@@ -1062,12 +1050,7 @@ function renderUserList(){
         <div class="uav">${initials(u.name)}</div>
         <div><div class="uname">${u.name}<span class="${u.role==='admin'?'badga':'badgm'}">${u.role}</span></div><div class="uun">@${u.username}</div></div>
       </div>
-      <div style="display:flex;gap:.4rem;align-items:center">
-        ${_currentUser?.role==='admin'&&u.id!==_currentUser?.id?`
-          <button class="bedit" onclick="editUser('${u.id}')">✏️</button>
-          <button class="bdel" onclick="deleteUser('${u.id}')">Eliminar</button>
-        `:`<span style="font-size:.68rem;color:var(--g400)">${u.id===_currentUser?.id?'(tú — edita en ajustes)':''}</span>`}
-      </div>
+      ${u.id!==_currentUser?.id&&_currentUser?.role==='admin'?`<button class="bdel" onclick="deleteUser('${u.id}')">Eliminar</button>`:`<span style="font-size:.68rem;color:var(--g400)">${u.id===_currentUser?.id?'(tú)':''}</span>`}
     </div>`).join('');
 }
 
@@ -1101,17 +1084,10 @@ function swTab(id){
 function sendContact(){
   const n=document.getElementById('cn').value.trim();
   const e=document.getElementById('ce').value.trim();
-  const pais=document.getElementById('cc').value;
   const m=document.getElementById('cm').value.trim();
-  if(!n||!e||!pais||!m){showToast('❌ Completa los campos obligatorios incluyendo país');return;}
-  // Build WhatsApp message
-  const empresa=document.getElementById('cc2')?document.getElementById('cc2').value.trim():'';
-  const msg=encodeURIComponent(`Hola DTANOMI! Soy ${n} de ${pais}${empresa?' - '+empresa:''}. Mi email: ${e}. Consulta: ${m}`);
-  window.open('https://wa.me/573155622362?text='+msg,'_blank');
-  showToast('✅ Abriendo WhatsApp...');
-  ['cn','ce','cm'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('cc').value='';
-  if(document.getElementById('cc2'))document.getElementById('cc2').value='';
+  if(!n||!e||!m){showToast('❌ Completa los campos obligatorios');return;}
+  showToast('✅ ¡Mensaje enviado! Te contactaremos pronto.');
+  ['cn','ce','cc','cm'].forEach(id=>document.getElementById(id).value='');
 }
 
 
@@ -1187,8 +1163,8 @@ async function saveEdit(){
     const {db,doc,setDoc}=window._fb;
     if(_editType==='project'){
       const p=window._projects.find(x=>x.id===_editId);
-      const imgRaw=document.getElementById('ep-img-data')?document.getElementById('ep-img-data').value:'';
-      const vidRaw=document.getElementById('ep-vid-data')?document.getElementById('ep-vid-data').value:'';
+      const imgRaw=document.getElementById('ep-img-data').value;
+      const vidRaw=document.getElementById('ep-vid-data').value;
       const updated={...p,
         name:document.getElementById('ep-name').value.trim(),
         cat:document.getElementById('ep-cat').value,
@@ -1200,8 +1176,8 @@ async function saveEdit(){
         m3:document.getElementById('ep-m3').value.trim(),
         emoji:document.getElementById('ep-emoji').value||'🚀',
         tags:document.getElementById('ep-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
-        img:imgRaw==='KEEP'?p.img:(imgRaw||p.img||''),
-        video:vidRaw==='KEEP'?p.video:(vidRaw||p.video||''),
+        img:imgRaw==='KEEP'?p.img:(imgRaw||p.img),
+        video:vidRaw==='KEEP'?p.video:(vidRaw||p.video),
       };
       await setDoc(doc(db,'projects',_editId),updated);
       showToast('✅ Proyecto actualizado');
@@ -1219,74 +1195,15 @@ async function saveEdit(){
       await setDoc(doc(db,'team',_editId),updated);
       showToast('✅ Miembro actualizado');
     }
-    } else if(_editType==='user'){
-      const u=(window._users||[]).find(x=>x.id===_editId);
-      const newPass=document.getElementById('eu-pass').value;
-      const newUsername=document.getElementById('eu-username').value.trim().toLowerCase();
-      const dupUser=(window._users||[]).find(x=>x.username&&x.username.toLowerCase()===newUsername&&x.id!==_editId);
-      if(dupUser){showToast('❌ Ese nombre de usuario ya existe');btn.disabled=false;btn.textContent='Guardar cambios';return;}
-      const updated={...u,
-        name:document.getElementById('eu-name').value.trim(),
-        username:newUsername,
-        role:document.getElementById('eu-role').value,
-        password:newPass&&newPass.length>=6?newPass:u.password,
-      };
-      await setDoc(doc(db,'users',_editId),updated);
-      showToast('✅ Usuario actualizado');
-    }
     closeEditOverlay();
     renderManage();
-    renderUserList();
   }catch(e){ showToast('❌ Error: '+e.message); }
   btn.disabled=false; btn.textContent='Guardar cambios';
 }
 
 function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-function editUser(id){
-  const u=(window._users||[]).find(x=>x.id===id); if(!u)return;
-  _editType='user'; _editId=id;
-  document.getElementById('edit-title').textContent='✏️ Editar usuario: '+u.name;
-  document.getElementById('edit-form-content').innerHTML=`
-    <div class="fgrid">
-      <div class="fg"><label class="fl">Nombre completo *</label><input type="text" class="fi" id="eu-name" value="${escHtml(u.name||'')}"></div>
-      <div class="fg"><label class="fl">Usuario *</label><input type="text" class="fi" id="eu-username" value="${escHtml(u.username||'')}"></div>
-      <div class="fg"><label class="fl">Nueva contraseña (dejar vacío para no cambiar)</label><input type="password" class="fi" id="eu-pass" placeholder="Nueva contraseña..." autocomplete="new-password"></div>
-      <div class="fg"><label class="fl">Rol</label>
-        <select class="fsel" id="eu-role">
-          <option value="member" ${u.role==='member'?'selected':''}>Miembro</option>
-          <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
-        </select>
-      </div>
-    </div>`;
-  document.getElementById('edit-overlay').classList.add('open');
-}
-
 // ===== UTILS =====
-// Firebase timeout warning
-setTimeout(()=>{
-  if(!window._dataReady){
-    const s=document.getElementById('fb-status');
-    if(s){s.style.display='block';s.innerHTML='⚠️ No se pudo conectar a Firebase. Ve a <strong>console.firebase.google.com</strong> → Firestore Database → Reglas → pega <code>allow read, write: if true;</code> y publica.';}
-    // Load fallback data so page isn't empty
-    if(!window._projects.length) window._projects=[
-      {id:"p1",name:"Sistema de Reportes Automáticos",cat:"python",emoji:"📊",desc:"Genera reportes automáticamente",problem:"El equipo gastaba horas en Excel.",detail:"",time:"20h/semana",money:"$800/mes",m3:"100% preciso",tags:["Python","pandas"],img:"",video:"",gallery:[]},
-      {id:"p2",name:"Bot de Atención al Cliente",cat:"bot",emoji:"🤖",desc:"Bot de WhatsApp automático",problem:"Horas perdidas respondiendo WhatsApp.",detail:"",time:"15h/semana",money:"$1,200/mes",m3:"89% satisfacción",tags:["WhatsApp API","Python"],img:"",video:"",gallery:[]},
-      {id:"p3",name:"Dashboard en Tiempo Real",cat:"web",emoji:"📈",desc:"Dashboard centralizado",problem:"6 sistemas distintos para ver el negocio.",detail:"",time:"10h/semana",money:"Mejor decisiones",m3:"6 sistemas",tags:["React","FastAPI"],img:"",video:"",gallery:[]}
-    ];
-    if(!window._team.length) window._team=[
-      {id:"t1",name:"Alejandro Torres",role:"CEO & Full Stack Developer",bio:"Fundador de DTANOMI.",photo:"",linkedin:"",github:""},
-      {id:"t2",name:"María López",role:"AI & Data Engineer",bio:"Experta en machine learning.",photo:"",linkedin:"",github:""},
-      {id:"t3",name:"David Ríos",role:"Bot Developer",bio:"Maestro de los bots.",photo:"",linkedin:"",github:""}
-    ];
-    if(!window._users.length) window._users=[{id:"admin",name:"Admin DTANOMI",username:"admin",password:"dtanomi2025",role:"admin"}];
-    window._dataReady=true;
-    if(typeof renderPortfolio==='function') renderPortfolio();
-    if(typeof renderTeam==='function') renderTeam();
-    if(typeof updateStatCount==='function') updateStatCount();
-  }
-},6000);
-
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 window.addEventListener('scroll',()=>{document.getElementById('scroll-top').classList.toggle('visible',window.scrollY>400);});
 </script>
