@@ -21,103 +21,104 @@
     appId: "1:698985522716:web:d2267f4aeb21f55bb921d9"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+  // Default data - always shown immediately
+  const DEFAULT_PROJECTS = [
+    {id:"p1",name:"Sistema de Reportes Automáticos",cat:"python",emoji:"📊",
+     desc:"Genera reportes de ventas semanales y los envía por email automáticamente",
+     problem:"El equipo gastaba 4 horas cada lunes generando reportes en Excel.",
+     detail:"Script Python con pandas que conecta al ERP y envía el Excel cada lunes a las 8am.",
+     time:"20h/semana",money:"$800/mes",m3:"100% preciso",
+     tags:["Python","pandas","Excel","SMTP"],img:"",video:"",gallery:[],order:1},
+    {id:"p2",name:"Bot de Atención al Cliente",cat:"bot",emoji:"🤖",
+     desc:"Bot de WhatsApp que responde consultas y agenda citas automáticamente",
+     problem:"El equipo perdía horas respondiendo las mismas preguntas por WhatsApp.",
+     detail:"WhatsApp Business API + NLP que agenda citas en Google Calendar sin intervención humana.",
+     time:"15h/semana",money:"$1,200/mes",m3:"89% satisfacción",
+     tags:["WhatsApp API","Python","NLP"],img:"",video:"",gallery:[],order:2},
+    {id:"p3",name:"Dashboard en Tiempo Real",cat:"web",emoji:"📈",
+     desc:"Plataforma que consolida datos de múltiples fuentes en un dashboard centralizado",
+     problem:"Los directivos revisaban 6 sistemas distintos para tener visión del negocio.",
+     detail:"React + FastAPI + PostgreSQL conectando CRM, ERP y Google Sheets en un solo lugar.",
+     time:"10h/semana",money:"Mejor decisiones",m3:"6 sistemas integrados",
+     tags:["React","FastAPI","PostgreSQL"],img:"",video:"",gallery:[],order:3}
+  ];
+  const DEFAULT_TEAM = [
+    {id:"t1",name:"Alejandro Torres",role:"CEO & Full Stack Developer",bio:"Fundador de DTANOMI. Especialista en arquitecturas de software y automatización.",photo:"",linkedin:"",github:"",order:1},
+    {id:"t2",name:"María López",role:"AI & Data Engineer",bio:"Experta en machine learning y procesamiento de datos.",photo:"",linkedin:"",github:"",order:2},
+    {id:"t3",name:"David Ríos",role:"Bot Developer & Automation",bio:"Maestro de los bots y las integraciones.",photo:"",linkedin:"",github:"",order:3}
+  ];
+  const DEFAULT_USERS = [
+    {id:"admin",name:"Admin DTANOMI",username:"admin",password:"dtanomi2025",role:"admin"}
+  ];
 
-  // Expose firebase helpers globally
-  window._fb = { db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot };
-  window._projects = [];
-  window._team = [];
-  window._users = [];
+  // Load defaults immediately so page renders right away
+  window._projects = DEFAULT_PROJECTS;
+  window._team = DEFAULT_TEAM;
+  window._users = DEFAULT_USERS;
+  window._dataReady = true;
+  window._fbReady = false;
 
-  // Track which collections have received their first snapshot
-  let _ready = { projects: false, team: false, users: false };
+  // Render immediately with defaults
+  window.addEventListener('DOMContentLoaded', () => {
+    if(typeof renderPortfolio==='function') renderPortfolio();
+    if(typeof renderTeam==='function') renderTeam();
+    if(typeof updateStatCount==='function') updateStatCount();
+  });
 
-  function checkAllReady() {
-    if (_ready.projects && _ready.team && _ready.users) {
-      window._dataReady = true;
-      // Safe render: functions are defined in non-module script below
-      if (typeof renderPortfolio === 'function') renderPortfolio();
-      if (typeof renderTeam === 'function') renderTeam();
-      if (typeof updateStatCount === 'function') updateStatCount();
+  // Then try to connect Firebase and override with real data
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    window._fb = { db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot };
+
+    // Try to get real data - if rules not set, gracefully falls back to defaults
+    onSnapshot(collection(db,"projects"),
+      snap => {
+        if(snap.docs.length > 0) {
+          window._projects = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
+          if(typeof renderPortfolio==='function') renderPortfolio();
+          if(typeof updateStatCount==='function') updateStatCount();
+        }
+        window._fbReady = true;
+      },
+      err => { console.warn("Firebase projects:", err.code); window._fbReady = true; }
+    );
+    onSnapshot(collection(db,"team"),
+      snap => {
+        if(snap.docs.length > 0) {
+          window._team = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
+          if(typeof renderTeam==='function') renderTeam();
+        }
+      },
+      err => { console.warn("Firebase team:", err.code); }
+    );
+    onSnapshot(collection(db,"users"),
+      snap => {
+        if(snap.docs.length > 0) {
+          window._users = snap.docs.map(d=>({...d.data(),id:d.id}));
+          if(window._currentUser?.role==="admin" && typeof renderUserList==='function') renderUserList();
+        }
+      },
+      err => { console.warn("Firebase users:", err.code); }
+    );
+
+    // Seed Firebase if empty
+    async function seedIfEmpty() {
+      try {
+        const s = await getDocs(collection(db,"users"));
+        if(s.empty) {
+          for(const u of DEFAULT_USERS) await setDoc(doc(db,"users",u.id),u);
+          for(const p of DEFAULT_PROJECTS) await setDoc(doc(db,"projects",p.id),p);
+          for(const t of DEFAULT_TEAM) await setDoc(doc(db,"team",t.id),t);
+        }
+      } catch(e) { console.warn("Seed skipped:", e.code); }
     }
+    seedIfEmpty();
+
+  } catch(e) {
+    console.warn("Firebase not available, using defaults:", e.message);
+    window._fb = null;
   }
-
-  // Real-time listeners — each fires immediately with current data
-  onSnapshot(collection(db, "projects"), snap => {
-    window._projects = snap.docs.map(d => d.data()).sort((a,b) => (a.order||0)-(b.order||0));
-    _ready.projects = true;
-    if (window._dataReady) {
-      if (typeof renderPortfolio === 'function') renderPortfolio();
-      if (typeof updateStatCount === 'function') updateStatCount();
-    } else { checkAllReady(); }
-  });
-
-  onSnapshot(collection(db, "team"), snap => {
-    window._team = snap.docs.map(d => d.data()).sort((a,b) => (a.order||0)-(b.order||0));
-    _ready.team = true;
-    if (window._dataReady) {
-      if (typeof renderTeam === 'function') renderTeam();
-    } else { checkAllReady(); }
-  });
-
-  onSnapshot(collection(db, "users"), snap => {
-    window._users = snap.docs.map(d => d.data());
-    _ready.users = true;
-    if (window._dataReady && window._currentUser?.role === "admin") {
-      if (typeof renderUserList === 'function') renderUserList();
-    } else { checkAllReady(); }
-  });
-
-  // Seed defaults if collections are empty (only runs once ever)
-  async function seedIfEmpty() {
-    try {
-      const usersSnap = await getDocs(collection(db, "users"));
-      if (usersSnap.empty) {
-        await setDoc(doc(db, "users", "admin"), {
-          id: "admin", name: "Admin DTANOMI", username: "admin", password: "dtanomi2025", role: "admin"
-        });
-      }
-      const projSnap = await getDocs(collection(db, "projects"));
-      if (projSnap.empty) {
-        const dp = [
-          { id:"p1", name:"Sistema de Reportes Automáticos", cat:"python", emoji:"📊",
-            desc:"Genera reportes de ventas semanales y los envía por email automáticamente",
-            problem:"El equipo gastaba 4 horas cada lunes generando reportes en Excel.",
-            detail:"Script Python con pandas que conecta al ERP y envía el reporte cada lunes a las 8am.",
-            time:"20h/semana", money:"$800/mes", m3:"100% preciso",
-            tags:["Python","pandas","Excel","SMTP"], img:"", video:"", gallery:[], order:1 },
-          { id:"p2", name:"Bot de Atención al Cliente", cat:"bot", emoji:"🤖",
-            desc:"Bot de WhatsApp que responde consultas y agenda citas automáticamente",
-            problem:"El equipo perdía horas respondiendo las mismas preguntas por WhatsApp.",
-            detail:"Bot con WhatsApp Business API + NLP que agenda citas en Google Calendar.",
-            time:"15h/semana", money:"$1,200/mes", m3:"89% satisfacción",
-            tags:["WhatsApp API","Python","NLP"], img:"", video:"", gallery:[], order:2 },
-          { id:"p3", name:"Dashboard en Tiempo Real", cat:"web", emoji:"📈",
-            desc:"Plataforma que consolida datos de múltiples fuentes en un dashboard",
-            problem:"Los directivos revisaban 6 sistemas distintos para tener visión del negocio.",
-            detail:"React + FastAPI + PostgreSQL conectando CRM, ERP y Google Sheets.",
-            time:"10h/semana", money:"Mejor decisiones", m3:"6 sistemas integrados",
-            tags:["React","FastAPI","PostgreSQL"], img:"", video:"", gallery:[], order:3 }
-        ];
-        for (const p of dp) await setDoc(doc(db, "projects", p.id), p);
-      }
-      const teamSnap = await getDocs(collection(db, "team"));
-      if (teamSnap.empty) {
-        const dt = [
-          { id:"t1", name:"Alejandro Torres", role:"CEO & Full Stack Developer",
-            bio:"Fundador de DTANOMI. Especialista en arquitecturas de software y automatización.", photo:"", linkedin:"", github:"", order:1 },
-          { id:"t2", name:"María López", role:"AI & Data Engineer",
-            bio:"Experta en machine learning y procesamiento de datos.", photo:"", linkedin:"", github:"", order:2 },
-          { id:"t3", name:"David Ríos", role:"Bot Developer & Automation",
-            bio:"Maestro de los bots y las integraciones.", photo:"", linkedin:"", github:"", order:3 }
-        ];
-        for (const t of dt) await setDoc(doc(db, "team", t.id), t);
-      }
-    } catch(e) { console.warn("Seed error:", e); }
-  }
-
-  seedIfEmpty();
 </script>
 
 <style>
@@ -1019,8 +1020,9 @@ async function addProject(){
     tags,img:document.getElementById('pimg-data').value,
     video:document.getElementById('pvid-data').value,gallery,
     order:Date.now()};
+  if(!window._fb){showToast('⚠️ Firebase no disponible. Configura las reglas en Firestore.');btn.disabled=false;btn.textContent='Publicar proyecto en Firebase';return;}
   try{
-    const {db,doc,setDoc,collection}=window._fb;
+    const {db,doc,setDoc}=window._fb;
     await setDoc(doc(db,'projects',id),proj);
     ['pn','pd','pprob','pdet','pt','pm','pm3','ptags'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('pem').value='🚀';
@@ -1038,6 +1040,7 @@ async function addMember(){
   const role=document.getElementById('mr').value.trim();
   if(!name||!role){showToast('❌ Nombre y rol son obligatorios');return;}
   const id='t'+Date.now();
+  if(!window._fb){showToast('⚠️ Firebase no disponible. Configura las reglas en Firestore.');return;}
   try{
     const {db,doc,setDoc}=window._fb;
     await setDoc(doc(db,'team',id),{id,name,role,
@@ -1062,6 +1065,7 @@ async function createUser(){
   if(password.length<6){showToast('❌ Contraseña mínimo 6 caracteres');return;}
   if((window._users||[]).find(u=>u.username&&u.username.toLowerCase()===username)){showToast('❌ Ese usuario ya existe');return;}
   const id='u'+Date.now();
+  if(!window._fb){showToast('⚠️ Firebase no disponible.');return;}
   try{
     const {db,doc,setDoc}=window._fb;
     await setDoc(doc(db,'users',id),{id,name,username,password,role});
@@ -1210,6 +1214,7 @@ function editMember(id){
 async function saveEdit(){
   const btn=document.getElementById('edit-save-btn');
   btn.disabled=true; btn.textContent='Guardando...';
+  if(!window._fb){showToast('⚠️ Firebase no disponible. Configura las reglas en Firestore.');btn.disabled=false;btn.textContent='Guardar cambios en Firebase';return;}
   try{
     const {db,doc,setDoc}=window._fb;
     if(_editType==='project'){
@@ -1338,6 +1343,7 @@ function editUser(id){
 async function saveEdit(){
   const btn=document.getElementById('edit-save-btn');
   btn.disabled=true;btn.textContent='Guardando...';
+  if(!window._fb){showToast('⚠️ Firebase no disponible. Configura las reglas en Firestore.');btn.disabled=false;btn.textContent='Guardar cambios en Firebase';return;}
   try{
     const {db,doc,setDoc}=window._fb;
     if(_editType==='project'){
