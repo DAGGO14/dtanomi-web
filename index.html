@@ -8,20 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 
 <!-- FIREBASE -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBjnX7Szx0VH49wkJAw1lBxKuTE-3vuR1U",
-    authDomain: "dtanomi-42366.firebaseapp.com",
-    projectId: "dtanomi-42366",
-    storageBucket: "dtanomi-42366.firebasestorage.app",
-    messagingSenderId: "698985522716",
-    appId: "1:698985522716:web:d2267f4aeb21f55bb921d9"
-  };
-
-  // Default data - always shown immediately
+<script>
+  // ===== DEFAULT DATA =====
   const DEFAULT_PROJECTS = [
     {id:"p1",name:"Sistema de Reportes Automáticos",cat:"python",emoji:"📊",
      desc:"Genera reportes de ventas semanales y los envía por email automáticamente",
@@ -39,7 +28,7 @@
      desc:"Plataforma que consolida datos de múltiples fuentes en un dashboard centralizado",
      problem:"Los directivos revisaban 6 sistemas distintos para tener visión del negocio.",
      detail:"React + FastAPI + PostgreSQL conectando CRM, ERP y Google Sheets en un solo lugar.",
-     time:"10h/semana",money:"Mejor decisiones",m3:"6 sistemas integrados",
+     time:"10h/semana",money:"Mejores decisiones",m3:"6 sistemas integrados",
      tags:["React","FastAPI","PostgreSQL"],img:"",video:"",gallery:[],order:3}
   ];
   const DEFAULT_TEAM = [
@@ -51,74 +40,11 @@
     {id:"admin",name:"Admin DTANOMI",username:"admin",password:"dtanomi2025",role:"admin"}
   ];
 
-  // Load defaults immediately so page renders right away
+  // Set defaults immediately so page content is ready
   window._projects = DEFAULT_PROJECTS;
-  window._team = DEFAULT_TEAM;
-  window._users = DEFAULT_USERS;
-  window._dataReady = true;
-  window._fbReady = false;
-
-  // Render immediately with defaults
-  window.addEventListener('DOMContentLoaded', () => {
-    if(typeof renderPortfolio==='function') renderPortfolio();
-    if(typeof renderTeam==='function') renderTeam();
-    if(typeof updateStatCount==='function') updateStatCount();
-  });
-
-  // Then try to connect Firebase and override with real data
-  try {
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    window._fb = { db, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot };
-
-    // Try to get real data - if rules not set, gracefully falls back to defaults
-    onSnapshot(collection(db,"projects"),
-      snap => {
-        if(snap.docs.length > 0) {
-          window._projects = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
-          if(typeof renderPortfolio==='function') renderPortfolio();
-          if(typeof updateStatCount==='function') updateStatCount();
-        }
-        window._fbReady = true;
-      },
-      err => { console.warn("Firebase projects:", err.code); window._fbReady = true; }
-    );
-    onSnapshot(collection(db,"team"),
-      snap => {
-        if(snap.docs.length > 0) {
-          window._team = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
-          if(typeof renderTeam==='function') renderTeam();
-        }
-      },
-      err => { console.warn("Firebase team:", err.code); }
-    );
-    onSnapshot(collection(db,"users"),
-      snap => {
-        if(snap.docs.length > 0) {
-          window._users = snap.docs.map(d=>({...d.data(),id:d.id}));
-          if(window._currentUser?.role==="admin" && typeof renderUserList==='function') renderUserList();
-        }
-      },
-      err => { console.warn("Firebase users:", err.code); }
-    );
-
-    // Seed Firebase if empty
-    async function seedIfEmpty() {
-      try {
-        const s = await getDocs(collection(db,"users"));
-        if(s.empty) {
-          for(const u of DEFAULT_USERS) await setDoc(doc(db,"users",u.id),u);
-          for(const p of DEFAULT_PROJECTS) await setDoc(doc(db,"projects",p.id),p);
-          for(const t of DEFAULT_TEAM) await setDoc(doc(db,"team",t.id),t);
-        }
-      } catch(e) { console.warn("Seed skipped:", e.code); }
-    }
-    seedIfEmpty();
-
-  } catch(e) {
-    console.warn("Firebase not available, using defaults:", e.message);
-    window._fb = null;
-  }
+  window._team    = DEFAULT_TEAM;
+  window._users   = DEFAULT_USERS;
+  window._fb      = null;
 </script>
 
 <style>
@@ -796,15 +722,7 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
 </div>
 
 
-<!-- EDIT OVERLAY -->
-<div id="edit-overlay" onclick="if(event.target===this)closeEditOverlay()">
-  <div class="edit-box">
-    <button class="edit-close" onclick="closeEditOverlay()">✕</button>
-    <div class="edit-box-title" id="edit-title">Editar</div>
-    <div id="edit-form-content"></div>
-    <button class="btn-f" id="edit-save-btn" onclick="saveEdit()" style="margin-top:1rem">Guardar cambios en Firebase</button>
-  </div>
-</div>
+
 
 <!-- FOOTER -->
 <footer>
@@ -1147,120 +1065,6 @@ function sendContact(){
 
 
 // ===== EDIT OVERLAY =====
-let _editType = null;
-let _editId = null;
-
-function closeEditOverlay(){
-  document.getElementById('edit-overlay').classList.remove('open');
-  _editType=null; _editId=null;
-}
-
-function editProject(id){
-  const p=window._projects.find(x=>x.id===id); if(!p)return;
-  _editType='project'; _editId=id;
-  document.getElementById('edit-title').textContent='✏️ Editar proyecto: '+p.name;
-  document.getElementById('edit-form-content').innerHTML=`
-    <div class="fgrid">
-      <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="ep-name" value="${escHtml(p.name||'')}"></div>
-      <div class="fg"><label class="fl">Categoría</label>
-        <select class="fsel" id="ep-cat">
-          <option value="python" ${p.cat==='python'?'selected':''}>🐍 Python</option>
-          <option value="bot" ${p.cat==='bot'?'selected':''}>🤖 Bot</option>
-          <option value="web" ${p.cat==='web'?'selected':''}>🌐 Web</option>
-          <option value="ai" ${p.cat==='ai'?'selected':''}>🧠 IA</option>
-        </select>
-      </div>
-      <div class="fg fw"><label class="fl">¿Qué hace?</label><input type="text" class="fi" id="ep-desc" value="${escHtml(p.desc||'')}"></div>
-      <div class="fg fw"><label class="fl">Problema que resuelve</label><textarea class="fta" id="ep-problem">${escHtml(p.problem||'')}
-</textarea></div>
-      <div class="fg fw"><label class="fl">Detalles completos</label><textarea class="fta" id="ep-detail" style="min-height:90px">${escHtml(p.detail||'')}
-</textarea></div>
-      <div class="fg"><label class="fl">⏱ Tiempo ahorrado</label><input type="text" class="fi" id="ep-time" value="${escHtml(p.time||'')}"></div>
-      <div class="fg"><label class="fl">💰 Ahorro / Ganancia</label><input type="text" class="fi" id="ep-money" value="${escHtml(p.money||'')}"></div>
-      <div class="fg"><label class="fl">📊 Métrica extra</label><input type="text" class="fi" id="ep-m3" value="${escHtml(p.m3||'')}"></div>
-      <div class="fg"><label class="fl">🏷 Tags (coma)</label><input type="text" class="fi" id="ep-tags" value="${escHtml((p.tags||[]).join(', '))}"></div>
-      <div class="fg"><label class="fl">Emoji</label><input type="text" class="fi" id="ep-emoji" value="${escHtml(p.emoji||'🚀')}" maxlength="4"></div>
-      <div class="fg fw"><label class="fl">🖼 Nueva imagen (opcional — deja vacío para mantener la actual)</label>
-        <div class="upload-zone"><input type="file" accept="image/*" onchange="handleImg(this,'ep-img-prev','ep-img-data')"><div class="upload-ic">🖼</div><div class="upload-txt">${p.img?'Imagen actual cargada. Sube otra para reemplazar.':' Clic o arrastra'}</div><div class="upload-preview" id="ep-img-prev">${p.img?`<img src="${p.img}" class="upload-thumb">`:''}
-</div></div>
-        <input type="hidden" id="ep-img-data" value="${p.img?'KEEP':''}">      </div>
-      <div class="fg fw"><label class="fl">🎬 Nuevo video (opcional)</label>
-        <div class="upload-zone"><input type="file" accept="video/*" onchange="handleVid(this,'ep-vid-prev','ep-vid-data')"><div class="upload-ic">🎬</div><div class="upload-txt">${p.video?'Video actual cargado. Sube otro para reemplazar.':' Clic o arrastra'}</div><div class="upload-preview" id="ep-vid-prev"></div></div>
-        <input type="hidden" id="ep-vid-data" value="${p.video?'KEEP':''}">      </div>
-    </div>`;
-  document.getElementById('edit-overlay').classList.add('open');
-}
-
-function editMember(id){
-  const m=window._team.find(x=>x.id===id); if(!m)return;
-  _editType='member'; _editId=id;
-  document.getElementById('edit-title').textContent='✏️ Editar miembro: '+m.name;
-  document.getElementById('edit-form-content').innerHTML=`
-    <div class="fgrid">
-      <div class="fg"><label class="fl">Nombre *</label><input type="text" class="fi" id="em-name" value="${escHtml(m.name||'')}"></div>
-      <div class="fg"><label class="fl">Rol *</label><input type="text" class="fi" id="em-role" value="${escHtml(m.role||'')}"></div>
-      <div class="fg fw"><label class="fl">Bio</label><textarea class="fta" id="em-bio" style="min-height:65px">${escHtml(m.bio||'')}
-</textarea></div>
-      <div class="fg fw"><label class="fl">📷 Nueva foto (deja vacío para mantener la actual)</label>
-        <div class="upload-zone"><input type="file" accept="image/*" onchange="handleImg(this,'em-photo-prev','em-photo-data')"><div class="upload-ic">📷</div><div class="upload-txt">${m.photo?'Foto actual cargada. Sube otra para reemplazar.':' Clic o arrastra'}</div><div class="upload-preview" id="em-photo-prev">${m.photo?`<img src="${m.photo}" class="upload-thumb">`:''}
-</div></div>
-        <input type="hidden" id="em-photo-data" value="${m.photo?'KEEP':''}">      </div>
-      <div class="fg"><label class="fl">LinkedIn</label><input type="text" class="fi" id="em-linkedin" value="${escHtml(m.linkedin||'')}"></div>
-      <div class="fg"><label class="fl">GitHub</label><input type="text" class="fi" id="em-github" value="${escHtml(m.github||'')}"></div>
-    </div>`;
-  document.getElementById('edit-overlay').classList.add('open');
-}
-
-async function saveEdit(){
-  const btn=document.getElementById('edit-save-btn');
-  btn.disabled=true; btn.textContent='Guardando...';
-  if(!window._fb){showToast('⚠️ Firebase no disponible. Configura las reglas en Firestore.');btn.disabled=false;btn.textContent='Guardar cambios en Firebase';return;}
-  try{
-    const {db,doc,setDoc}=window._fb;
-    if(_editType==='project'){
-      const p=window._projects.find(x=>x.id===_editId);
-      const imgRaw=document.getElementById('ep-img-data').value;
-      const vidRaw=document.getElementById('ep-vid-data').value;
-      const updated={...p,
-        name:document.getElementById('ep-name').value.trim(),
-        cat:document.getElementById('ep-cat').value,
-        desc:document.getElementById('ep-desc').value.trim(),
-        problem:document.getElementById('ep-problem').value.trim(),
-        detail:document.getElementById('ep-detail').value.trim(),
-        time:document.getElementById('ep-time').value.trim(),
-        money:document.getElementById('ep-money').value.trim(),
-        m3:document.getElementById('ep-m3').value.trim(),
-        emoji:document.getElementById('ep-emoji').value||'🚀',
-        tags:document.getElementById('ep-tags').value.split(',').map(t=>t.trim()).filter(Boolean),
-        img:imgRaw==='KEEP'?p.img:(imgRaw||p.img),
-        video:vidRaw==='KEEP'?p.video:(vidRaw||p.video),
-      };
-      await setDoc(doc(db,'projects',_editId),updated);
-      showToast('✅ Proyecto actualizado');
-    } else if(_editType==='member'){
-      const m=window._team.find(x=>x.id===_editId);
-      const photoRaw=document.getElementById('em-photo-data').value;
-      const updated={...m,
-        name:document.getElementById('em-name').value.trim(),
-        role:document.getElementById('em-role').value.trim(),
-        bio:document.getElementById('em-bio').value.trim(),
-        photo:photoRaw==='KEEP'?m.photo:(photoRaw||m.photo),
-        linkedin:document.getElementById('em-linkedin').value.trim(),
-        github:document.getElementById('em-github').value.trim(),
-      };
-      await setDoc(doc(db,'team',_editId),updated);
-      showToast('✅ Miembro actualizado');
-    }
-    closeEditOverlay();
-    renderManage();
-  }catch(e){ showToast('❌ Error: '+e.message); }
-  btn.disabled=false; btn.textContent='Guardar cambios';
-}
-
-function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-
-// ===== EDIT OVERLAY =====
 let _editType=null,_editId=null;
 function closeEditOverlay(){document.getElementById('edit-overlay').classList.remove('open');_editType=null;_editId=null;}
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -1401,6 +1205,72 @@ async function saveEdit(){
 // ===== UTILS =====
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3500);}
 window.addEventListener('scroll',()=>{document.getElementById('scroll-top').classList.toggle('visible',window.scrollY>400);});
+</script>
+
+<!-- Firebase compat SDK al final para garantizar que carga antes del init -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script>
+(function() {
+  const firebaseConfig = {
+    apiKey: "AIzaSyBjnX7Szx0VH49wkJAw1lBxKuTE-3vuR1U",
+    authDomain: "dtanomi-42366.firebaseapp.com",
+    projectId: "dtanomi-42366",
+    storageBucket: "dtanomi-42366.firebasestorage.app",
+    messagingSenderId: "698985522716",
+    appId: "1:698985522716:web:d2267f4aeb21f55bb921d9"
+  };
+
+  // Render defaults (todas las funciones ya existen aquí)
+  renderPortfolio();
+  renderTeam();
+  updateStatCount();
+
+  // Init Firebase
+  try {
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Expose write helpers con la misma firma que el código existente usa
+    window._fb = {
+      db,
+      collection: (db, col)     => db.collection(col),
+      doc:        (db, col, id) => db.collection(col).doc(id),
+      setDoc:     (ref, data)   => ref.set(data),
+      deleteDoc:  (ref)         => ref.delete(),
+      getDocs:    (ref)         => ref.get(),
+    };
+
+    // Listeners en tiempo real
+    db.collection('projects').onSnapshot(snap => {
+      window._projects = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
+      renderPortfolio();
+      updateStatCount();
+    }, err => console.warn('Firebase projects:', err.code));
+
+    db.collection('team').onSnapshot(snap => {
+      window._team = snap.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>(a.order||0)-(b.order||0));
+      renderTeam();
+    }, err => console.warn('Firebase team:', err.code));
+
+    db.collection('users').onSnapshot(snap => {
+      window._users = snap.docs.map(d=>({...d.data(),id:d.id}));
+      if(window._currentUser?.role==='admin') renderUserList();
+    }, err => console.warn('Firebase users:', err.code));
+
+    // Seed si es la primera vez (colecciones vacías)
+    db.collection('users').get().then(s => {
+      if(s.empty) {
+        window._projects.forEach(p => db.collection('projects').doc(p.id).set(p));
+        window._team.forEach(t    => db.collection('team').doc(t.id).set(t));
+        window._users.forEach(u   => db.collection('users').doc(u.id).set(u));
+      }
+    }).catch(e => console.warn('Seed skipped:', e.code));
+
+  } catch(e) {
+    console.warn('Firebase init failed:', e.message);
+  }
+})();
 </script>
 </body>
 </html>
