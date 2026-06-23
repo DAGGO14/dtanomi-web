@@ -260,6 +260,23 @@ section{padding:6rem 2rem;}
 .modal-gallery img{width:100%;border-radius:8px;object-fit:cover;aspect-ratio:16/9;cursor:pointer;transition:transform .2s;}
 .modal-gallery img:hover{transform:scale(1.04);}
 .modal-tags{display:flex;gap:.42rem;flex-wrap:wrap;}
+.modal-media img{cursor:zoom-in;}
+.modal-media-expand{position:absolute;bottom:.6rem;right:.6rem;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:7px;padding:.3rem .6rem;font-size:.72rem;cursor:pointer;z-index:5;transition:background .2s;}
+.modal-media-expand:hover{background:rgba(0,0,0,.85);}
+.modal-vwrap{position:relative;}
+.vid-expand{position:absolute;top:.5rem;right:.5rem;background:rgba(0,0,0,.7);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:7px;padding:.28rem .55rem;font-size:.7rem;cursor:pointer;z-index:5;transition:background .2s;}
+.vid-expand:hover{background:rgba(0,0,0,.9);}
+
+/* LIGHTBOX */
+#lightbox{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.96);display:none;align-items:center;justify-content:center;cursor:zoom-out;}
+#lightbox.open{display:flex;}
+#lightbox-close{position:fixed;top:1.1rem;right:1.3rem;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10001;transition:background .2s;}
+#lightbox-close:hover{background:rgba(239,68,68,.5);}
+#lightbox-content{max-width:95vw;max-height:92vh;position:relative;z-index:10000;}
+#lightbox-content img{max-width:95vw;max-height:92vh;object-fit:contain;border-radius:8px;display:block;}
+#lightbox-content video{max-width:95vw;max-height:92vh;border-radius:8px;display:block;outline:none;}
+#lightbox-content iframe{width:90vw;height:50.625vw;max-height:85vh;border:none;border-radius:8px;}
+#lightbox-nav{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);color:rgba(255,255,255,.45);font-size:.75rem;letter-spacing:.04em;}
 
 /* TEAM */
 #team{background:var(--bg);}
@@ -757,6 +774,13 @@ footer{background:var(--bg2);border-top:1px solid var(--gb);padding:2.6rem 2rem 
   </div>
 </div>
 
+<!-- LIGHTBOX -->
+<div id="lightbox" onclick="if(event.target===this||event.target.id==='lightbox')closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <div id="lightbox-content"></div>
+  <div id="lightbox-nav"></div>
+</div>
+
 <a href="#home" class="scroll-top" id="scroll-top">↑</a>
 <div class="toast" id="toast"></div>
 
@@ -850,7 +874,10 @@ function openModal(id){
   document.getElementById('mdesc').textContent=p.desc||'';
   document.getElementById('mprob').textContent=p.problem||'';
   const mm=document.getElementById('mm');
-  mm.innerHTML=p.img?`<img src="${p.img}" alt="${p.name}">`:`<span class="modal-emoji">${p.emoji||'🚀'}</span>`;
+  mm.innerHTML=p.img
+    ?`<img src="${p.img}" alt="${p.name}" onclick="openLightboxImg('${p.img}')" title="Clic para ver en pantalla completa">
+      <button class="modal-media-expand" onclick="openLightboxImg('${p.img}')">⛶ Pantalla completa</button>`
+    :`<span class="modal-emoji">${p.emoji||'🚀'}</span>`;
   const ds=document.getElementById('mdet-s');
   if(p.detail){ds.style.display='block';document.getElementById('mdet').textContent=p.detail;}else ds.style.display='none';
   const met=document.getElementById('mmet');met.innerHTML='';
@@ -861,12 +888,16 @@ function openModal(id){
   const vs=document.getElementById('mvid-s');
   if(p.video){vs.style.display='block';
     const isYT=p.video.includes('youtube')||p.video.includes('youtu.be');
-    document.getElementById('mvid').innerHTML=isYT?`<iframe src="${p.video}" allowfullscreen></iframe>`:`<video src="${p.video}" controls></video>`;
+    const vidSrc=p.video;
+    document.getElementById('mvid').innerHTML=isYT
+      ?`<iframe src="${vidSrc}" allowfullscreen></iframe><button class="vid-expand" onclick="openLightboxVideo('${vidSrc}',true)">⛶ Pantalla completa</button>`
+      :`<video src="${vidSrc}" controls></video><button class="vid-expand" onclick="openLightboxVideo('${vidSrc}',false)">⛶ Pantalla completa</button>`;
   }else vs.style.display='none';
   const gs=document.getElementById('mgal-s');
   if(p.gallery&&p.gallery.length){gs.style.display='block';
-    document.getElementById('mgal').innerHTML=p.gallery.map(g=>`<img src="${g}" onclick="window.open(this.src,'_blank')">`).join('');
-  }else gs.style.display='none';
+    window._galleryImgs=p.gallery;
+    document.getElementById('mgal').innerHTML=p.gallery.map((g,i)=>`<img src="${g}" onclick="openLightboxGallery(${i})" title="Clic para ampliar">`).join('');
+  }else{gs.style.display='none';window._galleryImgs=[];}
   document.getElementById('mtags').innerHTML=(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
   document.getElementById('modal').classList.add('open');
   document.body.style.overflow='hidden';
@@ -876,7 +907,47 @@ function closeModal(){
   document.body.style.overflow='';
   document.getElementById('mvid').innerHTML='';
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+// ===== LIGHTBOX =====
+let _lbGalleryIdx=0;
+window._galleryImgs=[];
+
+function openLightboxImg(src){
+  document.getElementById('lightbox-content').innerHTML=`<img src="${src}" alt="">`;
+  document.getElementById('lightbox-nav').textContent='';
+  document.getElementById('lightbox').classList.add('open');
+}
+function openLightboxVideo(src,isYT){
+  document.getElementById('lightbox-content').innerHTML=isYT
+    ?`<iframe src="${src}" allowfullscreen></iframe>`
+    :`<video src="${src}" controls autoplay></video>`;
+  document.getElementById('lightbox-nav').textContent='';
+  document.getElementById('lightbox').classList.add('open');
+}
+function openLightboxGallery(idx){
+  _lbGalleryIdx=idx;
+  const imgs=window._galleryImgs;
+  document.getElementById('lightbox-content').innerHTML=`<img src="${imgs[idx]}" alt="">`;
+  document.getElementById('lightbox-nav').textContent=imgs.length>1?`${idx+1} / ${imgs.length}  ·  ← → para navegar`:'';
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox(){
+  const lb=document.getElementById('lightbox');
+  lb.classList.remove('open');
+  document.getElementById('lightbox-content').innerHTML='';
+}
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('lightbox').classList.contains('open')) closeLightbox();
+    else closeModal();
+  }
+  if(document.getElementById('lightbox').classList.contains('open')){
+    const imgs=window._galleryImgs;
+    if(!imgs.length)return;
+    if(e.key==='ArrowRight'){_lbGalleryIdx=(_lbGalleryIdx+1)%imgs.length;openLightboxGallery(_lbGalleryIdx);}
+    if(e.key==='ArrowLeft'){_lbGalleryIdx=(_lbGalleryIdx-1+imgs.length)%imgs.length;openLightboxGallery(_lbGalleryIdx);}
+  }
+});
 
 // ===== TEAM =====
 function renderTeam(){
