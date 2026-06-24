@@ -1099,13 +1099,18 @@ function hideProgress(wrapId) {
   document.getElementById(wrapId).classList.remove('show');
 }
 
-// Legacy compat para editProject imagen desde upload zone (se usa en edit overlay)
+// Maneja cualquier archivo para el edit overlay
 function handleImg(input, prevId, dataId) {
   const file = input.files[0]; if(!file) return;
-  // Guardamos el file en staged con key = dataId
   window._stagedFiles[dataId] = file;
-  const url = URL.createObjectURL(file);
-  document.getElementById(prevId).innerHTML = `<img src="${url}" class="upload-thumb">`;
+  const prev = document.getElementById(prevId);
+  if(file.type.startsWith('image/')) {
+    prev.innerHTML = `<img src="${URL.createObjectURL(file)}" class="upload-thumb">`;
+  } else if(file.type.startsWith('video/')) {
+    prev.innerHTML = `<span class="upload-vname">🎬 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)</span>`;
+  } else {
+    prev.innerHTML = `<span class="upload-vname">📄 ${file.name}</span>`;
+  }
 }
 
 // ===== ADD PROJECT (FIREBASE + STORAGE) =====
@@ -1393,7 +1398,9 @@ async function saveEdit(){
         window._stagedFiles['ep-vid-data']=null;
       }
       btn.textContent='💾 Guardando...';
-      await setDoc(doc(db,'projects',_editId),{...p,
+      // Usamos updateDoc para NO sobreescribir campos como gallery que no están en el form
+      const {updateDoc}=window._fb;
+      await updateDoc(doc(db,'projects',_editId),{
         name:document.getElementById('ep-name').value.trim(),
         cat:document.getElementById('ep-cat').value,
         desc:document.getElementById('ep-desc').value.trim(),
@@ -1416,7 +1423,8 @@ async function saveEdit(){
         photoUrl=await uploadToStorage(window._stagedFiles['em-photo-data'],`team/${_editId}/photo_${Date.now()}`,'edit-progress-fill','edit-progress-pct','edit-progress-text');
         window._stagedFiles['em-photo-data']=null;
       }
-      await setDoc(doc(db,'team',_editId),{...m,
+      const {updateDoc}=window._fb;
+      await updateDoc(doc(db,'team',_editId),{
         name:document.getElementById('em-name').value.trim(),
         role:document.getElementById('em-role').value.trim(),
         bio:document.getElementById('em-bio').value.trim(),
@@ -1481,11 +1489,12 @@ window.addEventListener('scroll',()=>{document.getElementById('scroll-top').clas
     // Expose write helpers con la misma firma que el código existente usa
     window._fb = {
       db, storage,
-      collection: (db, col)     => db.collection(col),
-      doc:        (db, col, id) => db.collection(col).doc(id),
-      setDoc:     (ref, data)   => ref.set(data),
-      deleteDoc:  (ref)         => ref.delete(),
-      getDocs:    (ref)         => ref.get(),
+      collection: (db, col)         => db.collection(col),
+      doc:        (db, col, id)     => db.collection(col).doc(id),
+      setDoc:     (ref, data)       => ref.set(data),
+      updateDoc:  (ref, data)       => ref.update(data),
+      deleteDoc:  (ref)             => ref.delete(),
+      getDocs:    (ref)             => ref.get(),
     };
 
     // Listeners en tiempo real
