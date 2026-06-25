@@ -1177,8 +1177,8 @@ async function addProject(){
       money:document.getElementById('pm').value.trim(),
       m3:document.getElementById('pm3').value.trim(),
       tags,img:imgUrl,video:videoUrl,gallery,order:Date.now()};
-    const {db,doc,setDoc}=window._fb;
-    await setDoc(doc(db,'projects',id),proj);
+    const db=window._fb.db;
+    await db.collection('projects').doc(id).set(proj);
 
     // Limpiar formulario
     ['pn','pd','pprob','pdet','pt','pm','pm3','ptags'].forEach(x=>document.getElementById(x).value='');
@@ -1206,8 +1206,8 @@ async function addMember(){
       showToast('⬆️ Subiendo foto...');
       photoUrl=await uploadToStorage(window._stagedFiles['mphoto-data'],`team/${id}/photo_${window._stagedFiles['mphoto-data'].name.replace(/[^a-zA-Z0-9._-]/g,'_')}`);
     }
-    const {db,doc,setDoc}=window._fb;
-    await setDoc(doc(db,'team',id),{id,name,role,
+    const db=window._fb.db;
+    await db.collection('team').doc(id).set({id,name,role,
       bio:document.getElementById('mb').value.trim(),
       photo:photoUrl,
       linkedin:document.getElementById('mli').value.trim(),
@@ -1233,8 +1233,8 @@ async function createUser(){
   const id='u'+Date.now();
   if(!window._fb){showToast('⚠️ Firebase no disponible.');return;}
   try{
-    const {db,doc,setDoc}=window._fb;
-    await setDoc(doc(db,'users',id),{id,name,username,password,role});
+    const db=window._fb.db;
+    await db.collection('users').doc(id).set({id,name,username,password,role});
     ['un','uu','upw'].forEach(x=>document.getElementById(x).value='');
     showToast(`✅ Usuario "${username}" creado`);
   }catch(e){showToast('❌ Error: '+e.message);}
@@ -1246,8 +1246,8 @@ async function deleteUser(id){
   if(u?.role==='admin'&&(window._users||[]).filter(x=>x.role==='admin').length<=1){showToast('❌ No puedes eliminar el único admin');return;}
   if(!confirm(`¿Eliminar a "${u?.username}"?`))return;
   try{
-    const {db,doc,deleteDoc}=window._fb;
-    await deleteDoc(doc(db,'users',id));
+    const db=window._fb.db;
+    await db.collection('users').doc(id).delete();
     showToast('🗑 Usuario eliminado');
   }catch(e){showToast('❌ Error: '+e.message);}
 }
@@ -1272,12 +1272,12 @@ function renderUserList(){
 // ===== MANAGE =====
 async function delProject(id){
   if(!confirm('¿Eliminar?'))return;
-  try{const {db,doc,deleteDoc}=window._fb;await deleteDoc(doc(db,'projects',id));renderManage();showToast('🗑 Proyecto eliminado');}
+  try{const db=window._fb.db;await db.collection('projects').doc(id).delete();renderManage();showToast('🗑 Proyecto eliminado');}
   catch(e){showToast('❌ Error: '+e.message);}
 }
 async function delMember(id){
   if(!confirm('¿Eliminar?'))return;
-  try{const {db,doc,deleteDoc}=window._fb;await deleteDoc(doc(db,'team',id));renderManage();showToast('🗑 Miembro eliminado');}
+  try{const db=window._fb.db;await db.collection('team').doc(id).delete();renderManage();showToast('🗑 Miembro eliminado');}
   catch(e){showToast('❌ Error: '+e.message);}
 }
 function renderManage(){
@@ -1396,7 +1396,7 @@ async function saveEdit(){
   btn.disabled=true;btn.textContent='Guardando...';
   if(!window._fb){showToast('⚠️ Firebase no disponible.');btn.disabled=false;btn.textContent='Guardar cambios en Firebase';return;}
   try{
-    const {db,doc,setDoc}=window._fb;
+    const db=window._fb.db;
     if(_editType==='project'){
       const p=window._projects.find(x=>x.id===_editId);
       // Subir imagen si hay nuevo archivo
@@ -1404,7 +1404,7 @@ async function saveEdit(){
       if(window._stagedFiles['ep-img-data']){
         btn.textContent='⬆️ Subiendo imagen...';
         showProgress('edit-progress-wrap','edit-progress-fill','edit-progress-pct','edit-progress-text','Subiendo imagen...');
-        imgUrl=await uploadToStorage(window._stagedFiles['ep-img-data'],`projects/${_editId}/main_${Date.now()}`,'edit-progress-fill','edit-progress-pct','edit-progress-text');
+        imgUrl=await uploadToStorage(window._stagedFiles['ep-img-data'],'','edit-progress-fill','edit-progress-pct','edit-progress-text');
         window._stagedFiles['ep-img-data']=null;
       }
       // Subir video si hay nuevo archivo
@@ -1412,13 +1412,11 @@ async function saveEdit(){
       if(window._stagedFiles['ep-vid-data']){
         btn.textContent='⬆️ Subiendo video...';
         showProgress('edit-progress-wrap','edit-progress-fill','edit-progress-pct','edit-progress-text','Subiendo video...');
-        videoUrl=await uploadToStorage(window._stagedFiles['ep-vid-data'],`projects/${_editId}/video_${Date.now()}`,'edit-progress-fill','edit-progress-pct','edit-progress-text');
+        videoUrl=await uploadToStorage(window._stagedFiles['ep-vid-data'],'','edit-progress-fill','edit-progress-pct','edit-progress-text');
         window._stagedFiles['ep-vid-data']=null;
       }
       btn.textContent='💾 Guardando...';
-      // Usamos updateDoc para NO sobreescribir campos como gallery que no están en el form
-      const {updateDoc}=window._fb;
-      await updateDoc(doc(db,'projects',_editId),{
+      await db.collection('projects').doc(_editId).update({
         name:document.getElementById('ep-name').value.trim(),
         cat:document.getElementById('ep-cat').value,
         desc:document.getElementById('ep-desc').value.trim(),
@@ -1438,11 +1436,10 @@ async function saveEdit(){
       if(window._stagedFiles['em-photo-data']){
         btn.textContent='⬆️ Subiendo foto...';
         showProgress('edit-progress-wrap','edit-progress-fill','edit-progress-pct','edit-progress-text','Subiendo foto...');
-        photoUrl=await uploadToStorage(window._stagedFiles['em-photo-data'],`team/${_editId}/photo_${Date.now()}`,'edit-progress-fill','edit-progress-pct','edit-progress-text');
+        photoUrl=await uploadToStorage(window._stagedFiles['em-photo-data'],'','edit-progress-fill','edit-progress-pct','edit-progress-text');
         window._stagedFiles['em-photo-data']=null;
       }
-      const {updateDoc}=window._fb;
-      await updateDoc(doc(db,'team',_editId),{
+      await db.collection('team').doc(_editId).update({
         name:document.getElementById('em-name').value.trim(),
         role:document.getElementById('em-role').value.trim(),
         bio:document.getElementById('em-bio').value.trim(),
@@ -1457,7 +1454,7 @@ async function saveEdit(){
       const newPass=document.getElementById('eu-pass').value;
       const dup=(window._users||[]).find(x=>x.username&&x.username.toLowerCase()===newUser&&x.id!==_editId);
       if(dup){showToast('❌ Ese usuario ya existe');btn.disabled=false;btn.textContent='Guardar cambios en Firebase';return;}
-      await setDoc(doc(db,'users',_editId),{...u,
+      await db.collection('users').doc(_editId).set({...u,
         name:document.getElementById('eu-name').value.trim(),
         username:newUser,
         role:document.getElementById('eu-role').value,
